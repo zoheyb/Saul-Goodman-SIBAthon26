@@ -1,16 +1,6 @@
 import java.awt.*;
 import java.awt.geom.*;
 
-/**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║   PERSON 2: DeskRenderer.java                               ║
- * ║   Draws all desk objects — desk surface, monitor,            ║
- * ║   laptop, coffee mug, papers, sticky notes, USB, phone,     ║
- * ║   pen holder, mouse, drawers, decoy notes                   ║
- * ║                                                              ║
- * ║   Depends on: GameEngine.java (GamePanel state access)       ║
- * ╚══════════════════════════════════════════════════════════════╝
- */
 public class DeskRenderer {
 
     private final GameEngine.GamePanel gp;
@@ -493,3 +483,4 @@ public class DeskRenderer {
         ScreenRenderer.drawCenteredStatic(g2, gp.feedbackMsg, (int)(630 - yOffset), gp.W);
     }
 }
+
