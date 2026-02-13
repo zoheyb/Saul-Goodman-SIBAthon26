@@ -5,15 +5,7 @@ import java.awt.geom.*;
 import java.util.*;
 import java.util.List;
 
-/**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║   PERSON 1: GameEngine.java                                 ║
- * ║   Main class — JFrame, GameState, ClickableItem,            ║
- * ║   Game Loop, Input Handling, State Machine                   ║
- * ║                                                              ║
- * ║   Depends on: DeskRenderer.java, ScreenRenderer.java        ║
- * ╚══════════════════════════════════════════════════════════════╝
- */
+
 public class GameEngine extends JFrame {
 
     public static void main(String[] args) {
@@ -33,9 +25,7 @@ public class GameEngine extends JFrame {
         setLocationRelativeTo(null);
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  GAME STATES
-    // ═══════════════════════════════════════════════════════════════
+   
     enum GameState {
         INTRO_DIALOGUE,    // Detective briefing at start
         DESK_SEARCH,       // Hidden object — find the sticky note
@@ -45,9 +35,7 @@ public class GameEngine extends JFrame {
         LEVEL_SELECT       // City map for next levels
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  CLICKABLE ITEM — represents a hidden object on the desk
-    // ═══════════════════════════════════════════════════════════════
+    
     static class ClickableItem {
         String name;
         Rectangle bounds;
@@ -65,9 +53,7 @@ public class GameEngine extends JFrame {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  MAIN GAME PANEL — game loop + input + rendering dispatch
-    // ═══════════════════════════════════════════════════════════════
+    
     static class GamePanel extends JPanel implements ActionListener, MouseListener, KeyListener {
 
         // ── Dimensions ─────────────────────────────────────────────
@@ -449,3 +435,4 @@ public class GameEngine extends JFrame {
         @Override public void mouseExited(MouseEvent e) {}
     }
 }
+
