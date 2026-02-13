@@ -1,16 +1,7 @@
 import java.awt.*;
 import java.awt.geom.*;
 
-/**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║   PERSON 3: ScreenRenderer.java                             ║
- * ║   Renders all full-screen UI states — intro dialogue,       ║
- * ║   laptop login, level complete, mission failed,             ║
- * ║   level select (city map), floating particles, utilities     ║
- * ║                                                              ║
- * ║   Depends on: GameEngine.java (GamePanel state access)       ║
- * ╚══════════════════════════════════════════════════════════════╝
- */
+
 public class ScreenRenderer {
 
     private final GameEngine.GamePanel gp;
@@ -342,7 +333,7 @@ public class ScreenRenderer {
     //  UTILITY METHODS (static so DeskRenderer can use them too)
     // ═══════════════════════════════════════════════════════════════
 
-    /** Draw a neon-bordered panel */
+    
     public static void drawNeonPanel(Graphics2D g2, int x, int y,
                                      int w, int h, Color border) {
         g2.setColor(GameEngine.GamePanel.PANEL_BG);
@@ -357,19 +348,19 @@ public class ScreenRenderer {
         g2.setStroke(new BasicStroke(1));
     }
 
-    /** Draw centered text (instance method) */
+    
     private void drawCentered(Graphics2D g2, String s, int y) {
         FontMetrics fm = g2.getFontMetrics();
         g2.drawString(s, (gp.W - fm.stringWidth(s)) / 2, y);
     }
 
-    /** Draw centered text (static, used by DeskRenderer) */
+
     public static void drawCenteredStatic(Graphics2D g2, String s, int y, int width) {
         FontMetrics fm = g2.getFontMetrics();
         g2.drawString(s, (width - fm.stringWidth(s)) / 2, y);
     }
 
-    /** Draw floating particles */
+   
     private void drawFloatingParticles(Graphics2D g2, double time, int count) {
         for (int i = 0; i < count; i++) {
             float x = (float)((i * 37 + Math.sin(time + i * 0.7) * 50) % gp.W);
@@ -381,3 +372,4 @@ public class ScreenRenderer {
         }
     }
 }
+
