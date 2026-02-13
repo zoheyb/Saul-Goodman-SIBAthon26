@@ -1,4 +1,4 @@
-# 🛡️ CyberSentinel: The Firewall Defender
+# 🛡️ The Firewall Defender
 
 > *"Better Safe Than Sorry."* > Built by Team Soul Good Man for [Saul Goodman]
 
