@@ -1990,3 +1990,790 @@ import java.util.List;
                         g2.fillOval(r.x + r.width - 25, r.y + 70, 10, 10);
                     }
 
+                    
+                    // Unread dot
+                    if (!email.analyzed && !email.classified) {
+                        g2.setColor(NEON_CYAN);
+                        g2.fillOval(r.x + r.width - 15, r.y + 15, 8, 8);
+                    }
+                }
+
+                // Selected email detail view
+                if (selectedEmail != null && showEmailDetail) {
+                    drawEmailDetail(g2, selectedEmail);
+                }
+
+                // HUD for Level 2
+                g2.setColor(new Color(10, 10, 20, 200));
+                g2.fillRect(0, H - 60, W, 60);
+
+                g2.setFont(HUD_FONT);
+                g2.setColor(NEON_GREEN);
+                g2.drawString("LEVEL 2: PHISHING LAB", 20, H - 35);
+
+                // Timer
+                boolean critical = level2RemainingSeconds <= 15;
+                g2.setColor(critical ? CYBER_RED : AMBER);
+                g2.drawString(String.format("⏱ %02d:%02d",
+                        level2RemainingSeconds / 60, level2RemainingSeconds % 60), 250, H - 35);
+
+                // Progress
+                g2.setColor(NEON_CYAN);
+                g2.drawString(String.format("Analyzed: %d/%d | Correct: %d/%d",
+                                emailsClassified, emails.size(), correctClassifications, emails.size()),
+                        400, H - 35);
+
+                // Instructions
+                float pulse = (float)(0.5 + 0.5 * Math.sin(time * 3));
+                g2.setColor(new Color(0, 200, 230, (int)(pulse * 200)));
+                g2.drawString("Click email to read • Press P for PHISHING • Press S for SAFE • ESC to return",
+                        20, H - 15);
+
+                // Feedback message
+                if (!level2Feedback.isEmpty() && System.currentTimeMillis() - level2FeedbackTime < 3000) {
+                    drawNeonPanel(g2, W / 2 - 200, 500, 400, 40,
+                            level2Feedback.contains("Correct") ? NEON_GREEN : CYBER_RED);
+                    g2.setFont(DIALOGUE_FONT);
+                    g2.setColor(Color.WHITE);
+                    drawCentered(g2, level2Feedback, 530);
+                }
+            }
+
+            private void drawEmailDetail(Graphics2D g2, Email email) {
+                // Draw email detail panel
+                int x = 300;
+                int y = 180;
+                int w = 500;
+                int h = 350;
+
+                drawNeonPanel(g2, x, y, w, h, NEON_CYAN);
+
+                g2.setColor(Color.WHITE);
+                g2.setFont(EMAIL_HEADER);
+                g2.drawString("📧 EMAIL DETAILS", x + 20, y + 30);
+
+                // Email content
+                g2.setFont(EMAIL_FONT);
+                g2.setColor(new Color(220, 220, 230));
+                g2.drawString("From: " + email.sender, x + 30, y + 60);
+                g2.drawString("Subject: " + email.subject, x + 30, y + 85);
+
+                // Draw line
+                g2.setColor(DIM_CYAN);
+                g2.drawLine(x + 30, y + 100, x + w - 30, y + 100);
+
+                // Content with word wrap
+                g2.setColor(Color.WHITE);
+                String[] contentLines = email.content.split("\n");
+                int lineY = y + 130;
+                for (String line : contentLines) {
+                    if (line.length() > 50) {
+                        // Simple word wrap
+                        String part1 = line.substring(0, Math.min(50, line.length()));
+                        g2.drawString(part1, x + 30, lineY);
+                        lineY += 20;
+                        if (line.length() > 50) {
+                            String part2 = line.substring(50);
+                            g2.drawString(part2, x + 30, lineY);
+                            lineY += 20;
+                        }
+                    } else {
+                        g2.drawString(line, x + 30, lineY);
+                        lineY += 20;
+                    }
+                }
+
+                // Draw phishing indicators and hotspots
+                drawPhishingIndicators(g2, email, x, y);
+                drawPhishingHotspots(g2);
+
+                // Instructions
+                g2.setFont(SMALL_FONT);
+                g2.setColor(AMBER);
+                g2.drawString("Press P (Phishing) or S (Safe) to classify", x + 120, y + h - 30);
+
+                if (email.isPhishing && currentEmailElements.size() > 0) {
+                    g2.setColor(WARNING_ORANGE);
+                    g2.drawString("🔍 Click on suspicious elements to identify them (bonus points!)", x + 60, y + h - 10);
+                }
+            }
+
+            private void drawPhishingIndicators(Graphics2D g2, Email email, int x, int y) {
+                if (!email.isPhishing) return;
+
+                // Draw warning indicators
+                List<String> indicators = new ArrayList<>();
+
+                // Check sender domain
+                if (email.sender.contains("paypa1") || email.sender.contains("1")) {
+                    indicators.add("⚠ Misspelled domain detected!");
+                }
+                if (email.content.contains("URGENT") || email.content.contains("IMMEDIATELY") || email.content.contains("24 hours")) {
+                    indicators.add("⚠ Creates false urgency");
+                }
+                if (email.content.contains("http://") || email.content.contains("Click here")) {
+                    indicators.add("⚠ Suspicious link detected");
+                }
+
+                // Draw indicator panel if indicators found
+                if (!indicators.isEmpty()) {
+                    int indicatorY = y + 260;
+                    g2.setFont(new Font("Arial", Font.BOLD, 13));
+                    g2.setColor(WARNING_ORANGE);
+                    g2.drawString("🚨 RED FLAGS DETECTED:", x + 30, indicatorY);
+
+                    g2.setFont(SMALL_FONT);
+                    g2.setColor(CYBER_RED);
+                    for (int i = 0; i < indicators.size(); i++) {
+                        g2.drawString(indicators.get(i), x + 40, indicatorY + 20 + i * 18);
+                    }
+                }
+            }
+
+            private void drawPhishingHotspots(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                for (PhishingElement elem : currentEmailElements) {
+                    if (!elem.identified) {
+                        // Pulsing highlight
+                        float pulse = (float)(0.3 + 0.2 * Math.sin(time * 5));
+                        g2.setColor(new Color(255, 100, 100, (int)(pulse * 180)));
+                        g2.fillRect(elem.bounds.x, elem.bounds.y, elem.bounds.width, elem.bounds.height);
+
+                        // Border
+                        g2.setColor(CYBER_RED);
+                        g2.setStroke(new BasicStroke(2, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                                10, new float[]{4, 4}, 0));
+                        g2.drawRect(elem.bounds.x, elem.bounds.y, elem.bounds.width, elem.bounds.height);
+                        g2.setStroke(new BasicStroke(1));
+                    } else {
+                        // Identified - show checkmark
+                        g2.setColor(new Color(0, 255, 120, 50));
+                        g2.fillRect(elem.bounds.x, elem.bounds.y, elem.bounds.width, elem.bounds.height);
+
+                        g2.setFont(SMALL_FONT);
+                        g2.setColor(NEON_GREEN);
+                        g2.drawString("✓ " + elem.explanation, elem.bounds.x, elem.bounds.y - 5);
+                    }
+                }
+            }
+
+            private void renderLevel2Quiz(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                // Background
+                GradientPaint gp = new GradientPaint(0, 0,
+                        new Color(25, 35, 45), 0, H, new Color(15, 25, 35));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, W, H);
+
+                // Quiz panel
+                float panelY = (float)(100 + Math.sin(time) * 5);
+                drawNeonPanel(g2, W / 2 - 400, (int)panelY, 800, 550, AMBER);
+
+                // Title
+                g2.setFont(TITLE_FONT.deriveFont(36f));
+                g2.setColor(AMBER);
+                drawCentered(g2, "📋 SECURITY AWARENESS QUIZ", (int)(panelY + 50));
+
+                if (currentQuestion < quizQuestions.length) {
+                    // Question
+                    g2.setFont(new Font("Arial", Font.BOLD, 22));
+                    g2.setColor(Color.WHITE);
+                    drawCentered(g2, quizQuestions[currentQuestion][0], (int)(panelY + 120));
+
+                    // Options
+                    g2.setFont(new Font("Arial", Font.PLAIN, 18));
+                    for (int i = 1; i <= 4; i++) {
+                        Color optionColor = i == 1 ? CYBER_RED : i == 2 ? AMBER : i == 3 ? NEON_GREEN : NEON_CYAN;
+                        g2.setColor(optionColor);
+                        g2.drawString(quizQuestions[currentQuestion][i],
+                                W / 2 - 250, (int)(panelY + 170 + i * 40));
+                    }
+
+                    // Input field
+                    g2.setColor(new Color(40, 45, 60));
+                    g2.fillRoundRect(W / 2 - 100, (int)(panelY + 410), 200, 50, 8, 8);
+                    g2.setColor(AMBER);
+                    g2.setStroke(new BasicStroke(2));
+                    g2.drawRoundRect(W / 2 - 100, (int)(panelY + 410), 200, 50, 8, 8);
+                    g2.setStroke(new BasicStroke(1));
+
+                    g2.setFont(new Font("Arial", Font.BOLD, 24));
+                    g2.setColor(Color.WHITE);
+                    drawCentered(g2, quizInput.isEmpty() ? "_" : quizInput, (int)(panelY + 445));
+
+                    // Feedback + Explanation — FULL SCREEN POPUP
+                    if (quizFeedback) {
+                        // Dark overlay covering everything
+                        g2.setColor(new Color(0, 0, 0, 220));
+                        g2.fillRect(0, 0, W, H);
+
+                        // Big centered popup panel
+                        int popW = 750, popH = 400;
+                        int popX = W / 2 - popW / 2;
+                        int popY = H / 2 - popH / 2;
+                        Color borderC = quizFeedbackCorrect ? NEON_GREEN : CYBER_RED;
+                        drawNeonPanel(g2, popX, popY, popW, popH, borderC);
+
+                        // Result header — big and bold
+                        g2.setFont(new Font("Consolas", Font.BOLD, 40));
+                        g2.setColor(quizFeedbackCorrect ? NEON_GREEN : CYBER_RED);
+                        String result = quizFeedbackCorrect ? "✓ CORRECT!" : "✗ INCORRECT!";
+                        drawCentered(g2, result, popY + 60);
+
+                        // If wrong, show correct answer
+                        if (!quizFeedbackCorrect) {
+                            g2.setFont(new Font("Arial", Font.BOLD, 22));
+                            g2.setColor(AMBER);
+                            drawCentered(g2, "Correct Answer: " + quizQuestions[currentQuestion][5], popY + 105);
+                        }
+
+                        // Explanation title
+                        int expStartY = quizFeedbackCorrect ? popY + 120 : popY + 150;
+                        g2.setFont(new Font("Arial", Font.BOLD, 22));
+                        g2.setColor(AMBER);
+                        drawCentered(g2, "💡 EXPLANATION", expStartY);
+
+                        // Explanation lines — large, readable
+                        g2.setFont(new Font("Arial", Font.PLAIN, 18));
+                        g2.setColor(new Color(255, 255, 220));
+                        for (int i = 0; i < quizExplanation.length; i++) {
+                            drawCentered(g2, quizExplanation[i], expStartY + 40 + i * 32);
+                        }
+
+                        // Visual example for specific questions
+                        renderQuizVisualExample(g2, popX, popY, popW, popH);
+
+                        // Auto-advance hint
+                        g2.setFont(SMALL_FONT);
+                        float pulse = (float)(0.5 + 0.5 * Math.sin(time * 4));
+                        g2.setColor(new Color(150, 160, 180, (int)(pulse * 255)));
+                        drawCentered(g2, "Next question in a few seconds...", popY + popH - 30);
+                    }
+
+                    // Progress
+                    g2.setFont(SMALL_FONT);
+                    g2.setColor(DIM_CYAN);
+                    drawCentered(g2, String.format("Question %d of %d | Type A-D then press ENTER",
+                            currentQuestion + 1, quizQuestions.length), (int)(panelY + 520));
+                } else {
+                    // Quiz complete - show results
+                    calculateLevel2Score();
+
+                    g2.setFont(new Font("Arial", Font.BOLD, 32));
+                    g2.setColor(NEON_GREEN);
+                    drawCentered(g2, "🏆 QUIZ COMPLETE!", (int)(panelY + 150));
+
+                    g2.setFont(new Font("Arial", Font.BOLD, 28));
+                    g2.setColor(Color.WHITE);
+                    drawCentered(g2, String.format("Your Score: %d/%d", quizScore, quizQuestions.length),
+                            (int)(panelY + 220));
+
+                    g2.setFont(DIALOGUE_FONT);
+                    g2.setColor(NEON_CYAN);
+                    if (quizScore == quizQuestions.length) {
+                        drawCentered(g2, "Perfect! You're a security expert!", (int)(panelY + 280));
+                    } else if (quizScore >= quizQuestions.length / 2) {
+                        drawCentered(g2, "Good job! Keep learning about security!", (int)(panelY + 280));
+                    } else {
+                        drawCentered(g2, "Study more about phishing awareness!", (int)(panelY + 280));
+                    }
+
+                    // Continue button
+                    float pulse = (float)(0.5 + 0.5 * Math.sin(time * 3));
+                    g2.setColor(new Color(0, (int)(255 * pulse), (int)(120 * pulse)));
+                    g2.setFont(HUD_FONT);
+                    drawCentered(g2, ">>> PRESS ENTER TO COMPLETE LEVEL <<<", (int)(panelY + 400));
+                }
+            }
+
+            private void renderQuizVisualExample(Graphics2D g2, int popX, int popY, int popW, int popH) {
+                if (quizQuestions[currentQuestion][0].contains("sender address")) {
+                    // Show visual comparison for email domain question
+                    int exampleY = popY + 280;
+
+                    g2.setColor(new Color(40, 45, 60));
+                    g2.fillRoundRect(popX + 100, exampleY, 550, 70, 10, 10);
+
+                    g2.setFont(new Font("Courier New", Font.BOLD, 16));
+                    g2.setColor(CYBER_RED);
+                    g2.drawString("❌ paypa1.com  (FAKE - uses number '1' instead of 'l')", popX + 120, exampleY + 30);
+
+                    g2.setColor(NEON_GREEN);
+                    g2.drawString("✓ paypal.com   (REAL - official PayPal domain)", popX + 120, exampleY + 55);
+
+                    g2.setFont(SMALL_FONT);
+                    g2.setColor(Color.WHITE);
+                    g2.drawString("💡 Always check character-by-character! Attackers use look-alike letters and numbers.", popX + 150, exampleY + 80);
+                }
+            }
+
+            private void renderLevel2Complete(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                // Success background
+                GradientPaint gp = new GradientPaint(0, 0,
+                        new Color(20, 40, 30), 0, H, new Color(30, 50, 40));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, W, H);
+
+                // Floating shields
+                for (int i = 0; i < 12; i++) {
+                    float sx = (float)(100 + (i * 100 + time * 50) % (W - 200));
+                    float sy = (float)((i * 70 + time * 30) % H);
+                    g2.setColor(new Color(0, 255, 120, 30));
+                    g2.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 24));
+                    g2.drawString("🛡️", (int)sx, (int)sy);
+                }
+
+                // Success panel
+                float panelY = (float)(100 + Math.sin(time) * 8);
+                drawNeonPanel(g2, W / 2 - 400, (int)panelY, 800, 550, NEON_GREEN);
+
+                // Shield icon
+                g2.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 80));
+                g2.setColor(NEON_GREEN);
+                drawCentered(g2, "🏆", (int)(panelY + 70));
+
+                // Title
+                g2.setFont(TITLE_FONT);
+                g2.setColor(NEON_GREEN);
+                drawCentered(g2, "LEVEL 2 COMPLETE!", (int)(panelY + 150));
+
+                // RANK
+                g2.setFont(new Font("Consolas", Font.BOLD, 60));
+                Color rankColor = level2RankGrade.equals("S") ? new Color(255, 215, 0) :
+                        level2RankGrade.equals("A") ? NEON_GREEN :
+                                level2RankGrade.equals("B") ? NEON_CYAN :
+                                        level2RankGrade.equals("C") ? AMBER : CYBER_RED;
+                g2.setColor(rankColor);
+                drawCentered(g2, "RANK: " + level2RankGrade, (int)(panelY + 210));
+
+                // Score
+                g2.setFont(new Font("Consolas", Font.BOLD, 22));
+                g2.setColor(NEON_CYAN);
+                drawCentered(g2, "FINAL SCORE: " + level2FinalScore + " pts", (int)(panelY + 250));
+
+                // Stats
+                g2.setFont(LABEL_FONT);
+                g2.setColor(Color.WHITE);
+                long safeCount = emails.stream().filter(e -> !e.isPhishing && e.classified && e.classification.equals("safe")).count();
+                String[] stats = {
+                        String.format("🎯 Phishing Emails Identified: %d/3", emails.stream().filter(e -> e.isPhishing && e.classified && e.classification.equals("phishing")).count()),
+                        String.format("✅ Safe Emails Identified: %d/2", safeCount),
+                        String.format("📊 Overall Accuracy: %.0f%%", (float)correctClassifications / emails.size() * 100),
+                        String.format("📝 Quiz Score: %d/%d", quizScore, quizQuestions.length),
+                        String.format("🔍 Phishing Elements Found: %d/%d", elementsIdentified, totalPhishingElements),
+                        "",
+                        "🎓 Great work, Detective!",
+                        "You've learned to spot phishing attempts and protect against cyber threats."
+                };
+                for (int i = 0; i < stats.length; i++) {
+                    float lineY = (float)(panelY + 290 + i * 28
+                            + Math.sin(time * 2 + i * 0.3) * 2);
+                    Color lineColor = i < 5 ? NEON_CYAN : new Color(180, 200, 210);
+                    g2.setColor(lineColor);
+                    drawCentered(g2, stats[i], (int) lineY);
+                }
+
+                // Security lesson
+                g2.setFont(SMALL_FONT);
+                g2.setColor(AMBER);
+                drawCentered(g2, "💡 DID YOU KNOW? 96% of phishing attacks arrive via email | Always verify sender domains!",
+                        (int)(panelY + 530));
+
+                // Continue prompt
+                float pulse = (float)(0.5 + 0.5 * Math.sin(time * 3.5));
+                g2.setFont(HUD_FONT);
+                g2.setColor(new Color(0, (int)(255 * pulse), (int)(120 * pulse)));
+                drawCentered(g2, ">>> PRESS ENTER FOR LEVEL SELECT <<<",
+                        (int)(panelY + 580));
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  UTILITY METHODS
+            // ═══════════════════════════════════════════════════════════
+
+            private void drawNeonPanel(Graphics2D g2, int x, int y,
+                                       int w, int h, Color border) {
+                // Drop shadow
+                g2.setColor(new Color(0, 0, 0, 30));
+                g2.fillRoundRect(x + 3, y + 3, w, h, 16, 16);
+                // Glass background
+                g2.setColor(new Color(14, 18, 34, 220));
+                g2.fillRoundRect(x, y, w, h, 16, 16);
+                // Top highlight (glass reflection)
+                g2.setColor(new Color(255, 255, 255, 8));
+                g2.fillRoundRect(x, y, w, h / 4, 16, 16);
+                // Border with glow
+                g2.setColor(new Color(border.getRed(), border.getGreen(),
+                        border.getBlue(), 25));
+                g2.setStroke(new BasicStroke(3f));
+                g2.drawRoundRect(x - 1, y - 1, w + 2, h + 2, 17, 17);
+                g2.setColor(new Color(border.getRed(), border.getGreen(),
+                        border.getBlue(), 100));
+                g2.setStroke(new BasicStroke(1.2f));
+                g2.drawRoundRect(x, y, w, h, 16, 16);
+                g2.setStroke(new BasicStroke(1));
+            }
+
+            private void drawCentered(Graphics2D g2, String s, int y) {
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(s, (W - fm.stringWidth(s)) / 2, y);
+            }
+
+            private void drawFloatingParticles(Graphics2D g2, double time, int count) {
+                for (int i = 0; i < count; i++) {
+                    float x = (float)((i * 37 + Math.sin(time + i * 0.7) * 60) % W);
+                    float y = (float)((i * 23 + time * 15) % H);
+                    float wobble = (float)(Math.sin(time * 1.5 + i) * 12);
+                    int alpha = (int)(20 + 25 * Math.sin(time * 2.5 + i));
+                    float size = 1.5f + (i % 4);
+                    // Alternate cyan and purple particles
+                    Color c = (i % 3 == 0)
+                            ? new Color(140, 80, 255, Math.max(8, alpha))
+                            : new Color(80, 200, 255, Math.max(8, alpha));
+                    g2.setColor(c);
+                    g2.fill(new Ellipse2D.Float(x + wobble, H - y, size, size));
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  INPUT HANDLING
+            // ═══════════════════════════════════════════════════════════
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int x = e.getX(), y = e.getY();
+
+                if (state == GameState.DESK_SEARCH) {
+                    // Skip if in tutorial
+                    if (showTutorial) return;
+
+                    for (ClickableItem item : deskItems) {
+                        // Skip sticky note if not yet visible
+                        if (item.name.equals("Sticky Note") && !stickyNoteVisible) continue;
+
+                        if (item.bounds.contains(x, y)) {
+                            if (item.name.equals("Laptop")) {
+                                // Switch to laptop login screen
+                                state = GameState.LAPTOP_LOGIN;
+                                passwordInput = "";
+                                passwordWrong = false;
+                                playSound("click");
+                                return;
+                            }
+                            if (!item.found) {
+                                item.found = true;
+                                objectsFound++;
+                                feedbackMsg = item.dialogue;
+                                feedbackTime = System.currentTimeMillis();
+                                magnifiedItem = item;
+                                magnifyStartTime = System.currentTimeMillis();
+
+                                if (item.name.equals("Sticky Note")) {
+                                    stickyNoteFound = true;
+                                    hasPassword = true;
+                                    playSound("correct");
+                                } else {
+                                    playSound("click");
+                                }
+                            } else {
+                                feedbackMsg = "Already investigated: " + item.name;
+                                feedbackTime = System.currentTimeMillis();
+                                playSound("wrong");
+                            }
+                            return;
+                        }
+                    }
+                    // Clicked empty area — TIME PENALTY!
+                    wrongClicks++;
+                    missionStartTime -= 3000; // lose 3 seconds
+                    penaltyFlashAlpha = 50;
+                    feedbackMsg = "Nothing here! -3 seconds penalty. Click carefully!";
+                    feedbackTime = System.currentTimeMillis();
+                    playSound("wrong");
+                }
+                else if (state == GameState.LEVEL_SELECT) {
+                    // Check if clicked on a level pin
+                    for (int i = 0; i < levelPins.length; i++) {
+                        int px = levelPins[i][0];
+                        int py = levelPins[i][1];
+                        if (Math.abs(x - px) < 30 && Math.abs(y - py) < 30 && levelsUnlocked[i]) {
+                            if (i == 0) {
+                                // Level 1 - The Messy Desk
+                                resetLevel1();
+                            } else if (i == 1) {
+                                // Level 2 - The Phishing Lab
+                                resetLevel2();
+                            }
+                            playSound("click");
+                            return;
+                        }
+                    }
+                }
+                else if (state == GameState.LEVEL2_PHISHING) {
+                    // Check if clicked on phishing element hotspot
+                    for (PhishingElement elem : currentEmailElements) {
+                        if (elem.bounds.contains(x, y) && !elem.identified) {
+                            elem.identified = true;
+                            elementsIdentified++;
+                            playSound("correct");
+                            return;
+                        }
+                    }
+
+                    // Check if clicked on an email
+                    for (Email email : emails) {
+                        if (email.bounds.contains(x, y) && !email.classified) {
+                            selectedEmail = email;
+                            email.analyzed = true;
+                            showEmailDetail = true;
+                            analyzeEmailElements(email);
+                            playSound("click");
+                            return;
+                        }
+                    }
+                    // Clicked outside - close detail view if open
+                    if (showEmailDetail) {
+                        showEmailDetail = false;
+                        selectedEmail = null;
+                    }
+                }
+            }
+
+            private void resetLevel1() {
+                state = GameState.INTRO_DIALOGUE;
+                dialoguePhase = 0;
+                stateStartTime = System.currentTimeMillis();
+                hasPassword = false;
+                stickyNoteFound = false;
+                stickyNoteVisible = false;
+                passwordInput = "";
+                passwordWrong = false;
+                passwordAttemptsLeft = 3;
+                objectsFound = 0;
+                remainingSeconds = MISSION_TIME_LIMIT;
+                feedbackMsg = "";
+                wrongClicks = 0;
+                hintsUsed = 0;
+                currentHint = "";
+                showTutorial = true;
+                tutorialStep = 0;
+                magnifiedItem = null;
+                initDeskItems();
+            }
+
+            private void resetLevel2() {
+                state = GameState.LEVEL2_INTRO;
+                quizPhase = 0;
+                stateStartTime = System.currentTimeMillis();
+                initLevel2Emails();
+                selectedEmail = null;
+                emailsClassified = 0;
+                correctClassifications = 0;
+                level2RemainingSeconds = LEVEL2_TIME_LIMIT;
+                currentQuestion = 0;
+                quizScore = 0;
+                quizInput = "";
+                currentEmailElements.clear();
+                elementsIdentified = 0;
+                totalPhishingElements = 0;
+            }
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                int key = e.getKeyCode();
+
+                switch (state) {
+                    case INTRO_DIALOGUE -> {
+                        if (key == KeyEvent.VK_ENTER) {
+                            if (dialoguePhase < introDialogues.length - 1) {
+                                dialoguePhase++;
+                                stateStartTime = System.currentTimeMillis();
+                            } else {
+                                state = GameState.DESK_SEARCH;
+                                // Don't start timer yet - tutorial will do that
+                                missionStartTime = System.currentTimeMillis();
+                            }
+                        }
+                    }
+                    case DESK_SEARCH -> {
+                        if (showTutorial && key == KeyEvent.VK_SPACE) {
+                            tutorialStep++;
+                            if (tutorialStep > 2) {
+                                showTutorial = false;
+                                missionStartTime = System.currentTimeMillis(); // Start timer after tutorial
+                            }
+                        } else if (!showTutorial && key == KeyEvent.VK_H) {
+                            useHint();
+                        }
+                    }
+                    case LAPTOP_LOGIN -> {
+                        if (key == KeyEvent.VK_ESCAPE) {
+                            state = GameState.DESK_SEARCH;
+                        } else if (key == KeyEvent.VK_ENTER) {
+                            if (passwordInput.equalsIgnoreCase("admin123")) {
+                                levelsCompleted[0] = true;
+                                state = GameState.LEVEL_COMPLETE;
+                                playSound("correct");
+                            } else {
+                                passwordAttemptsLeft--;
+                                passwordWrong = true;
+                                passwordInput = "";
+                                playSound("wrong");
+                                // Out of attempts!
+                                if (passwordAttemptsLeft <= 0) {
+                                    failReason = "Too many wrong passwords! The laptop locked permanently.";
+                                    state = GameState.MISSION_FAILED;
+                                }
+                            }
+                        } else if (key == KeyEvent.VK_BACK_SPACE) {
+                            if (!passwordInput.isEmpty()) {
+                                passwordInput = passwordInput.substring(0,
+                                        passwordInput.length() - 1);
+                            }
+                            passwordWrong = false;
+                        }
+                    }
+                    case LEVEL_COMPLETE -> {
+                        if (key == KeyEvent.VK_ENTER) {
+                            state = GameState.LEVEL_SELECT;
+                        }
+                    }
+                    case MISSION_FAILED -> {
+                        if (key == KeyEvent.VK_R) {
+                            // Retry current level
+                            if (failReason.contains("laptop") || failReason.contains("password")) {
+                                resetLevel1();
+                            } else {
+                                resetLevel2();
+                            }
+                        } else if (key == KeyEvent.VK_ESCAPE) {
+                            state = GameState.LEVEL_SELECT;
+                        }
+                    }
+                    case LEVEL_SELECT -> {
+                        if (key == KeyEvent.VK_ESCAPE) {
+                            System.exit(0);
+                        }
+                    }
+                    // LEVEL 2 STATES
+                    case LEVEL2_INTRO -> {
+                        if (key == KeyEvent.VK_ENTER) {
+                            if (quizPhase < level2Intro.length - 1) {
+                                quizPhase++;
+                                stateStartTime = System.currentTimeMillis();
+                            } else {
+                                state = GameState.LEVEL2_PHISHING;
+                                level2StartTime = System.currentTimeMillis();
+                            }
+                        }
+                    }
+                    case LEVEL2_PHISHING -> {
+                        if (key == KeyEvent.VK_ESCAPE) {
+                            state = GameState.LEVEL_SELECT;
+                        } else if (selectedEmail != null && showEmailDetail && !selectedEmail.classified) {
+                            if (key == KeyEvent.VK_P) {
+                                // Classify as Phishing
+                                selectedEmail.classified = true;
+                                selectedEmail.classification = "phishing";
+                                emailsClassified++;
+                                if (selectedEmail.isPhishing) {
+                                    correctClassifications++;
+                                    level2Feedback = "✓ Correct! This IS a phishing email.";
+                                    playSound("correct");
+                                } else {
+                                    level2Feedback = "✗ Wrong! This is actually a SAFE email.";
+                                    level2StartTime -= 5000; // 5 second penalty
+                                    playSound("wrong");
+                                }
+                                level2FeedbackTime = System.currentTimeMillis();
+                                showEmailDetail = false;
+                            } else if (key == KeyEvent.VK_S) {
+                                // Classify as Safe
+                                selectedEmail.classified = true;
+                                selectedEmail.classification = "safe";
+                                emailsClassified++;
+                                if (!selectedEmail.isPhishing) {
+                                    correctClassifications++;
+                                    level2Feedback = "✓ Correct! This is a SAFE email.";
+                                    playSound("correct");
+                                } else {
+                                    level2Feedback = "✗ Wrong! This is actually a PHISHING email.";
+                                    level2StartTime -= 5000; // 5 second penalty
+                                    playSound("wrong");
+                                }
+                                level2FeedbackTime = System.currentTimeMillis();
+                                showEmailDetail = false;
+                            }
+                        }
+                    }
+                    case LEVEL2_QUIZ -> {
+                        if (currentQuestion < quizQuestions.length && !quizFeedback) {
+                            if (key >= KeyEvent.VK_A && key <= KeyEvent.VK_D) {
+                                char answer = (char)('A' + (key - KeyEvent.VK_A));
+                                quizInput = String.valueOf(answer);
+                            } else if (key == KeyEvent.VK_BACK_SPACE) {
+                                quizInput = "";
+                            } else if (key == KeyEvent.VK_ENTER && !quizInput.isEmpty()) {
+                                // Check answer
+                                String correct = quizQuestions[currentQuestion][5];
+                                if (quizInput.equals(correct)) {
+                                    quizScore++;
+                                    quizFeedbackCorrect = true;
+                                    playSound("correct");
+                                } else {
+                                    quizFeedbackCorrect = false;
+                                    playSound("wrong");
+                                }
+                                quizFeedback = true;
+                                quizExplanation = new String[]{
+                                        quizQuestions[currentQuestion][6],
+                                        quizQuestions[currentQuestion][7],
+                                        quizQuestions[currentQuestion][8]
+                                };
+
+                                // Move to next question after 6s
+                                javax.swing.Timer quizTimer = new javax.swing.Timer(6000, ev -> {
+                                    currentQuestion++;
+                                    quizInput = "";
+                                    quizFeedback = false;
+                                    if (currentQuestion >= quizQuestions.length) {
+                                        state = GameState.LEVEL2_COMPLETE;
+                                        levelsCompleted[1] = true;
+                                        calculateLevel2Score();
+                                    }
+                                });
+                                quizTimer.setRepeats(false);
+                                quizTimer.start();
+                            }
+                        }
+                    }
+                    case LEVEL2_COMPLETE -> {
+                        if (key == KeyEvent.VK_ENTER) {
+                            state = GameState.LEVEL_SELECT;
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void keyTyped(KeyEvent e) {
+                if (state == GameState.LAPTOP_LOGIN) {
+                    char c = e.getKeyChar();
+                    if (Character.isLetterOrDigit(c) && passwordInput.length() < 20) {
+                        passwordInput += c;
+                        passwordWrong = false;
+                    }
+                }
+            }
+
+            @Override public void keyReleased(KeyEvent e) {}
+            @Override public void mousePressed(MouseEvent e) {}
+            @Override public void mouseReleased(MouseEvent e) {}
+            @Override public void mouseEntered(MouseEvent e) {}
+            @Override public void mouseExited(MouseEvent e) {}
+    }
+}
+
