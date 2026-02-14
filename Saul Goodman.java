@@ -637,3 +637,274 @@ import java.util.List;
                 totalPhishingElements = currentEmailElements.size();
             }
 
+ // ═══════════════════════════════════════════════════════════
+            //  GAME LOOP (60 FPS)
+            // ═══════════════════════════════════════════════════════════
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                long now = System.currentTimeMillis();
+
+                if (state == GameState.DESK_SEARCH || state == GameState.LAPTOP_LOGIN) {
+                    // Don't count time during tutorial
+                    if (!showTutorial) {
+                        elapsedSeconds = (int)((now - missionStartTime) / 1000);
+                        remainingSeconds = MISSION_TIME_LIMIT - elapsedSeconds;
+
+                        // ── TIME'S UP! Mission failed ─────────────────────
+                        if (remainingSeconds <= 0) {
+                            remainingSeconds = 0;
+                            failReason = "TIME'S UP! You failed to unlock the laptop in time.";
+                            state = GameState.MISSION_FAILED;
+                        }
+                    }
+
+                    // ── Reveal sticky note after finding enough items ──
+                    if (objectsFound >= ITEMS_BEFORE_STICKY && !stickyNoteVisible) {
+                        stickyNoteVisible = true;
+                        feedbackMsg = "Something appeared on the desk! A sticky note just fell out!";
+                        feedbackTime = System.currentTimeMillis();
+                    }
+
+                    // Decay penalty flash
+                    if (penaltyFlashAlpha > 0) penaltyFlashAlpha -= 3;
+                }
+                else if (state == GameState.LEVEL2_PHISHING) {
+                    // Level 2 countdown timer
+                    level2RemainingSeconds = LEVEL2_TIME_LIMIT - (int)((now - level2StartTime) / 1000);
+                    if (level2RemainingSeconds <= 0) {
+                        level2RemainingSeconds = 0;
+                        failReason = "Time's up! You failed to analyze all emails.";
+                        state = GameState.MISSION_FAILED;
+                    }
+
+                    // Check if all emails classified
+                    if (emailsClassified == emails.size()) {
+                        state = GameState.LEVEL2_QUIZ;
+                        quizPhase = 0;
+                        currentQuestion = 0;
+                        quizScore = 0;
+                        quizInput = "";
+                    }
+                }
+
+                repaint();
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  RENDERING
+            // ═══════════════════════════════════════════════════════════
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+
+                // ── Antialiasing ───────────────────────────────────────
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                        RenderingHints.VALUE_TEXT_ANTIALIAS_LCD_HRGB);
+
+                // Background
+                g2.setColor(BG_DARK);
+                g2.fillRect(0, 0, W, H);
+
+                switch (state) {
+                    case INTRO_DIALOGUE -> renderIntroDialogue(g2);
+                    case DESK_SEARCH    -> renderDeskSearch(g2);
+                    case LAPTOP_LOGIN   -> renderLaptopLogin(g2);
+                    case LEVEL_COMPLETE -> renderLevelComplete(g2);
+                    case MISSION_FAILED -> renderMissionFailed(g2);
+                    case LEVEL_SELECT   -> renderLevelSelect(g2);
+                    // Level 2 states
+                    case LEVEL2_INTRO    -> renderLevel2Intro(g2);
+                    case LEVEL2_PHISHING -> renderLevel2Phishing(g2);
+                    case LEVEL2_QUIZ     -> renderLevel2Quiz(g2);
+                    case LEVEL2_COMPLETE -> renderLevel2Complete(g2);
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  LEVEL 1 RENDERING METHODS
+            // ═══════════════════════════════════════════════════════════
+
+            private void renderIntroDialogue(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                // Rich gradient background with animated hue shift
+                GradientPaint gp = new GradientPaint(0, 0,
+                        new Color(8, 8, 22), W, H, new Color(20, 12, 40));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, W, H);
+
+                // Subtle grid lines (cyberpunk feel)
+                g2.setColor(new Color(50, 40, 80, 15));
+                for (int x = 0; x < W; x += 40) g2.drawLine(x, 0, x, H);
+                for (int y = 0; y < H; y += 40) g2.drawLine(0, y, W, y);
+
+                // Floating particles
+                drawFloatingParticles(g2, time, 18);
+
+                // Ambient glow circles
+                g2.setColor(new Color(80, 200, 255, 8));
+                int cx = W/2 + (int)(Math.sin(time * 0.7) * 100);
+                int cy = 200 + (int)(Math.cos(time * 0.5) * 50);
+                g2.fillOval(cx - 200, cy - 200, 400, 400);
+                g2.setColor(new Color(140, 80, 255, 6));
+                g2.fillOval(cx + 100, cy + 50, 300, 300);
+
+                // Title (floating with glow)
+                float titleY = (float)(105 + Math.sin(time * 1.2) * 8);
+                g2.setFont(TITLE_FONT);
+                // Purple halo
+                g2.setColor(new Color(140, 80, 255, 18));
+                for (int i = -3; i <= 3; i++)
+                    drawCentered(g2, "CYBER DETECTIVE", (int)(titleY + i));
+                // Cyan glow layer
+                g2.setColor(new Color(80, 200, 255, 35));
+                drawCentered(g2, "CYBER DETECTIVE", (int)(titleY + 1));
+                drawCentered(g2, "CYBER DETECTIVE", (int)(titleY - 1));
+                // Main text
+                g2.setColor(SOFT_WHITE);
+                drawCentered(g2, "CYBER DETECTIVE", (int) titleY);
+
+                // Subtitle with accent line
+                g2.setFont(HUD_FONT);
+                g2.setColor(new Color(255, 70, 90, 200));
+                String sub = "LEVEL 1  ·  THE MESSY DESK";
+                FontMetrics sfm = g2.getFontMetrics();
+                int subW = sfm.stringWidth(sub);
+                int subX = W/2 - subW/2;
+                int subY = (int)(titleY + 52);
+                // Accent lines
+                g2.setColor(new Color(80, 200, 255, 60));
+                g2.drawLine(subX - 40, subY - 5, subX - 8, subY - 5);
+                g2.drawLine(subX + subW + 8, subY - 5, subX + subW + 40, subY - 5);
+                g2.setColor(CYBER_RED);
+                g2.drawString(sub, subX, subY);
+
+                // Dialogue panel — glassmorphism style
+                int panelX = W / 2 - 340, panelW = 680, panelH = 260, panelYi = 230;
+                // Soft shadow
+                g2.setColor(new Color(0, 0, 0, 40));
+                g2.fillRoundRect(panelX + 4, panelYi + 4, panelW, panelH, 20, 20);
+                // Glass fill
+                g2.setColor(new Color(18, 22, 42, 200));
+                g2.fillRoundRect(panelX, panelYi, panelW, panelH, 20, 20);
+                // Top highlight
+                g2.setColor(new Color(255, 255, 255, 12));
+                g2.fillRoundRect(panelX, panelYi, panelW, panelH / 3, 20, 20);
+                // Border
+                g2.setColor(new Color(80, 200, 255, 40));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.drawRoundRect(panelX, panelYi, panelW, panelH, 20, 20);
+                g2.setStroke(new BasicStroke(1));
+
+                // Detective icon
+                g2.setColor(new Color(80, 200, 255, 60));
+                g2.fillRoundRect(panelX + 18, panelYi + 18, 44, 44, 22, 22);
+                g2.setColor(SOFT_WHITE);
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 22));
+                g2.drawString("D", panelX + 32, panelYi + 47);
+
+                // Show dialogues
+                g2.setFont(DIALOGUE_FONT);
+                for (int i = 0; i <= Math.min(dialoguePhase, introDialogues.length - 1); i++) {
+                    float lineY = (float)(268 + i * 32);
+                    String line = introDialogues[i];
+                    if (i == dialoguePhase) {
+                        long elapsed = System.currentTimeMillis() - stateStartTime;
+                        int chars = (int)(elapsed / 25);
+                        line = line.substring(0, Math.min(chars, line.length()));
+                    }
+                    g2.setColor(i == dialoguePhase ? SOFT_WHITE : new Color(140, 150, 175));
+                    g2.drawString(line, panelX + 80, (int) lineY);
+                }
+
+                // Prompt
+                float pulse = (float)(0.5 + 0.5 * Math.sin(time * 3));
+                g2.setFont(HUD_FONT);
+                g2.setColor(new Color(80, 200, 255, (int)(120 + 135 * pulse)));
+                drawCentered(g2, dialoguePhase < introDialogues.length - 1
+                                ? "PRESS ENTER TO CONTINUE"
+                                : "PRESS ENTER TO BEGIN",
+                        (int)(550 + Math.sin(time * 1.5) * 4));
+
+                // Bottom bar
+                g2.setColor(new Color(40, 130, 160, 100));
+                g2.fillRect(0, H - 28, W, 28);
+                g2.setFont(SMALL_FONT);
+                g2.setColor(new Color(80, 200, 255, 120));
+                g2.drawString("Cyber Detective v2.0", 15, H - 10);
+            }
+
+            private void renderDeskSearch(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                // ── Room background with rich gradient ─────────────────
+                GradientPaint room = new GradientPaint(0, 0,
+                        new Color(22, 18, 36), 0, H, new Color(38, 30, 48));
+                g2.setPaint(room);
+                g2.fillRect(0, 0, W, H);
+
+                // Ambient light glow from monitor
+                g2.setColor(new Color(50, 70, 130, 12));
+                g2.fillOval(400, 20, 350, 250);
+
+                // ── Wall with texture ────────────────────────────────
+                GradientPaint wallPaint = new GradientPaint(0, 0,
+                        new Color(48, 40, 58), 0, 140, new Color(55, 45, 62));
+                g2.setPaint(wallPaint);
+                g2.fillRect(0, 0, W, 140);
+                // Accent stripe
+                g2.setColor(new Color(80, 200, 255, 15));
+                g2.fillRect(0, 132, W, 3);
+                // Wall-desk boundary shadow
+                GradientPaint shadow = new GradientPaint(0, 130,
+                        new Color(0, 0, 0, 80), 0, 175, new Color(0, 0, 0, 0));
+                g2.setPaint(shadow);
+                g2.fillRect(0, 130, W, 45);
+
+                // ── Desk surface ───────────────────────────────────────
+                drawDesk(g2, time);
+
+                // ── Draw all desk objects ──────────────────────────────
+                drawMonitor(g2, time);
+                drawKeyboard(g2);
+                drawLaptop(g2, time);
+                drawCoffeeMug(g2, time);
+                drawScatteredPapers(g2);
+                drawDecoyNotes(g2, time);
+                if (stickyNoteVisible) drawStickyNote(g2, time); // only after 3+ items!
+                drawUSBDrive(g2);
+                drawSmartphone(g2, time);
+                drawPenHolder(g2);
+                drawMouseDevice(g2);
+                drawDeskDrawer(g2);
+
+                // ── URGENCY EFFECT — red pulse when time is low ────────
+                if (remainingSeconds <= 20 && remainingSeconds > 0 && !showTutorial) {
+                    float urgency = (float)(0.05 + 0.05 * Math.sin(time * 4));
+                    g2.setColor(new Color(255, 0, 0, (int)(urgency * 100)));
+                    g2.fillRect(0, 0, W, H);
+                }
+
+                // ── Penalty flash overlay ──────────────────────────────
+                if (penaltyFlashAlpha > 0) {
+                    g2.setColor(new Color(255, 50, 50, penaltyFlashAlpha));
+                    g2.fillRect(0, 0, W, H);
+                }
+
+                // ── Highlight found items with check marks ─────────────
+                for (ClickableItem item : deskItems) {
+                    if (item.found && !item.name.equals("Laptop")) {
+                        g2.setColor(new Color(0, 255, 120, 100));
+                        g2.setStroke(new BasicStroke(2));
+                        g2.drawRoundRect(item.bounds.x - 3, item.bounds.y - 3,
+                                item.bounds.width + 6, item.bounds.height + 6, 8, 8);
+                        g2.setFont(LABEL_FONT);
+                        g2.setColor(NEON_GREEN);
+                        g2.drawString("✓", item.bounds.x + item.bounds.width - 5,
+                                item.bounds.y + 5);
+                        g2.setStroke(new BasicStroke(1));
+                    }
+                }
