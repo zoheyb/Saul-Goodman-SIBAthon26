@@ -908,3 +908,303 @@ import java.util.List;
                         g2.setStroke(new BasicStroke(1));
                     }
                 }
+  // ── Hover highlight ────────────────────────────────────
+                if (!hoverName.isEmpty() && !showTutorial) {
+                    for (ClickableItem item : deskItems) {
+                        if (item.name.equals(hoverName) && !item.found) {
+                            float hPulse = (float)(0.4 + 0.3 * Math.sin(time * 6));
+                            g2.setColor(new Color(0, 230, 255, (int)(hPulse * 100)));
+                            g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND,
+                                    BasicStroke.JOIN_ROUND, 0, new float[]{6, 4}, 0));
+                            g2.drawRoundRect(item.bounds.x - 4, item.bounds.y - 4,
+                                    item.bounds.width + 8, item.bounds.height + 8, 8, 8);
+                            g2.setStroke(new BasicStroke(1));
+                            // Item name tooltip
+                            g2.setFont(LABEL_FONT);
+                            g2.setColor(NEON_CYAN);
+                            g2.drawString("🔍 " + item.name, mouseX + 15, mouseY - 10);
+                        }
+                    }
+                }
+
+                // ── HUD ────────────────────────────────────────────────
+                if (!showTutorial) {
+                    drawHUD(g2, time);
+                }
+
+                // ── Feedback message ───────────────────────────────────
+                if (!feedbackMsg.isEmpty()
+                        && System.currentTimeMillis() - feedbackTime < 3000) {
+                    drawFeedbackPopup(g2, time);
+                }
+
+                // ── Magnified item view ────────────────────────────────
+                if (magnifiedItem != null) {
+                    drawMagnifier(g2, time);
+                }
+
+                // ── Tutorial overlay ───────────────────────────────────
+                if (showTutorial) {
+                    drawTutorial(g2, time);
+                }
+
+                // ── CRT scan lines (subtle) ────────────────────────────
+                g2.setColor(new Color(0, 0, 0, 8));
+                for (int y = 0; y < H; y += 4) {
+                    g2.drawLine(0, y, W, y);
+                }
+            }
+
+            // ── Draw the wooden desk ──────────────────────────────────
+            private void drawDesk(Graphics2D g2, double time) {
+                // Desk top surface
+                GradientPaint deskGrad = new GradientPaint(0, 150,
+                        DESK_TOP, 0, 550, DESK_BROWN);
+                g2.setPaint(deskGrad);
+                g2.fillRoundRect(30, 150, W - 60, 430, 8, 8);
+
+                // Wood grain lines
+                g2.setColor(new Color(WOOD_GRAIN.getRed(), WOOD_GRAIN.getGreen(),
+                        WOOD_GRAIN.getBlue(), 40));
+                for (int i = 0; i < 20; i++) {
+                    int y = 160 + i * 22;
+                    g2.drawLine(40, y, W - 70, y);
+                }
+
+                // Desk edge / front
+                g2.setColor(new Color(80, 50, 25));
+                g2.fillRect(30, 575, W - 60, 15);
+
+                // Desk legs
+                g2.setColor(new Color(70, 45, 20));
+                g2.fillRect(60, 590, 20, 110);
+                g2.fillRect(W - 110, 590, 20, 110);
+
+                // Desk shadow on floor
+                g2.setColor(new Color(0, 0, 0, 40));
+                g2.fillRect(40, 700, W - 80, 10);
+            }
+
+            // ── Draw desktop monitor (background decoration) ──────────
+            private void drawMonitor(Graphics2D g2, double time) {
+                // Monitor stand
+                g2.setColor(new Color(50, 50, 55));
+                g2.fillRect(505, 135, 100, 15);
+                g2.fillRect(540, 70, 30, 70);
+
+                // Monitor body
+                g2.setColor(new Color(35, 35, 40));
+                g2.fillRoundRect(380, 15, 350, 130, 8, 8);
+
+                // Screen
+                GradientPaint screenGrad = new GradientPaint(390, 25,
+                        new Color(20, 30, 60), 390, 135, new Color(30, 45, 80));
+                g2.setPaint(screenGrad);
+                g2.fillRoundRect(390, 25, 330, 110, 4, 4);
+
+                // Screen content — terminal style
+                g2.setFont(SMALL_FONT);
+                g2.setColor(NEON_GREEN);
+                String[] lines = {"C:\\> scanning network...",
+                        "192.168.1.1 ... OK", "192.168.1.42 ... ALERT"};
+                for (int i = 0; i < lines.length; i++) {
+                    float flicker = (float)(0.7 + 0.3 * Math.sin(time * 5 + i));
+                    g2.setColor(new Color(0, (int)(255 * flicker), (int)(120 * flicker)));
+                    g2.drawString(lines[i], 405, 50 + i * 15);
+                }
+
+                // Blinking cursor
+                if ((int)(time * 2) % 2 == 0) {
+                    g2.setColor(NEON_GREEN);
+                    g2.fillRect(405, 95, 8, 12);
+                }
+
+                // Screen reflection
+                g2.setColor(new Color(255, 255, 255, 8));
+                g2.fillRect(390, 25, 165, 110);
+            }
+
+            // ── Draw keyboard ─────────────────────────────────────────
+            private void drawKeyboard(Graphics2D g2) {
+                // Keyboard body
+                g2.setColor(new Color(45, 45, 50));
+                g2.fillRoundRect(420, 170, 180, 60, 6, 6);
+
+                // Keys
+                g2.setColor(KEY_COLOR);
+                for (int row = 0; row < 4; row++) {
+                    for (int col = 0; col < 12; col++) {
+                        g2.fillRoundRect(428 + col * 14, 177 + row * 14,
+                                11, 11, 2, 2);
+                    }
+                }
+                // Space bar
+                g2.fillRoundRect(460, 233, 80, 11, 3, 3);
+            }
+
+            // ── Draw the laptop (main interactive object) ─────────────
+            private void drawLaptop(Graphics2D g2, double time) {
+                // Laptop body
+                g2.setColor(new Color(55, 55, 65));
+                g2.fillRoundRect(430, 200, 250, 160, 8, 8);
+
+                // Screen area
+                GradientPaint laptopScreen = new GradientPaint(440, 208,
+                        SCREEN_BLUE, 440, 340, new Color(20, 30, 55));
+                g2.setPaint(laptopScreen);
+                g2.fillRoundRect(440, 208, 230, 120, 4, 4);
+
+                // Lock icon on screen
+                g2.setColor(hasPassword ? NEON_GREEN : CYBER_RED);
+                int lockX = 545, lockY = 248;
+                // Lock body
+                g2.fillRoundRect(lockX - 12, lockY, 24, 20, 4, 4);
+                // Lock shackle
+                g2.setStroke(new BasicStroke(3));
+                g2.drawArc(lockX - 8, lockY - 12, 16, 16, 0, 180);
+                g2.setStroke(new BasicStroke(1));
+
+                // Lock text
+                g2.setFont(SMALL_FONT);
+                g2.setColor(hasPassword ? NEON_GREEN : Color.WHITE);
+                String lockText = hasPassword ? "CLICK TO UNLOCK" : "LOCKED — Find Password";
+                FontMetrics fm = g2.getFontMetrics();
+                g2.drawString(lockText, 555 - fm.stringWidth(lockText) / 2, 290);
+
+                // Screen glow pulse
+                float glow = (float)(0.03 + 0.02 * Math.sin(time * 3));
+                g2.setColor(new Color(hasPassword ? 0 : 255,
+                        hasPassword ? 255 : 40,
+                        hasPassword ? 120 : 70, (int)(glow * 255)));
+                g2.fillRoundRect(440, 208, 230, 120, 4, 4);
+
+                // Laptop keyboard/touchpad area
+                g2.setColor(new Color(50, 50, 60));
+                g2.fillRoundRect(440, 335, 230, 25, 4, 4);
+                // Tiny keys on laptop
+                g2.setColor(new Color(60, 60, 70));
+                for (int i = 0; i < 18; i++) {
+                    g2.fillRect(445 + i * 12, 338, 9, 8);
+                }
+                // Touchpad
+                g2.setColor(new Color(55, 55, 65));
+                g2.fillRoundRect(520, 349, 60, 8, 3, 3);
+            }
+
+            // ── Draw coffee mug ───────────────────────────────────────
+            private void drawCoffeeMug(Graphics2D g2, double time) {
+                // Mug body
+                g2.setColor(MUG_COLOR);
+                g2.fillRoundRect(160, 350, 55, 65, 6, 6);
+                // Mug handle
+                g2.setStroke(new BasicStroke(4));
+                g2.setColor(MUG_COLOR);
+                g2.drawArc(210, 365, 20, 30, -90, 180);
+                g2.setStroke(new BasicStroke(1));
+                // Coffee liquid inside
+                g2.setColor(COFFEE_BROWN);
+                g2.fillOval(164, 354, 47, 12);
+                // Steam (animated)
+                g2.setColor(new Color(200, 200, 200, 60));
+                for (int i = 0; i < 3; i++) {
+                    float sx = (float)(175 + i * 12 + Math.sin(time * 3 + i) * 5);
+                    float sy = (float)(345 - i * 5 + Math.sin(time * 2 + i) * 3);
+                    g2.fill(new Ellipse2D.Float(sx, sy - 8, 4, 8));
+                }
+                // Stain ring on desk
+                g2.setColor(new Color(80, 50, 30, 40));
+                g2.drawOval(158, 410, 60, 10);
+            }
+
+            // ── Draw scattered papers ─────────────────────────────────
+            private void drawScatteredPapers(Graphics2D g2) {
+                // Paper 1 (tilted)
+                Graphics2D g2r = (Graphics2D) g2.create();
+                g2r.rotate(Math.toRadians(-5), 440, 430);
+                g2r.setColor(PAPER_WHITE);
+                g2r.fillRect(395, 405, 120, 55);
+                g2r.setColor(new Color(100, 100, 110));
+                g2r.setFont(new Font("Consolas", Font.PLAIN, 8));
+                g2r.drawString("COMPANY PASSWORD POLICY", 400, 420);
+                g2r.drawString("Rule 1: Never write passwords", 400, 432);
+                g2r.drawString("Rule 2: Use 2FA always", 400, 444);
+                g2r.drawString("Rule 3: Report suspicious email", 400, 456);
+                g2r.dispose();
+
+                // Paper 2 (tilted other way)
+                g2r = (Graphics2D) g2.create();
+                g2r.rotate(Math.toRadians(8), 470, 440);
+                g2r.setColor(new Color(230, 225, 210));
+                g2r.fillRect(430, 418, 110, 50);
+                g2r.setColor(new Color(120, 120, 130));
+                g2r.setFont(new Font("Consolas", Font.PLAIN, 8));
+                g2r.drawString("Q4 Security Audit Report", 435, 432);
+                g2r.drawString("STATUS: ██ FAILED ██", 435, 444);
+                g2r.drawString("3 critical vulnerabilities", 435, 456);
+                g2r.dispose();
+            }
+
+            // ── Draw DECOY sticky notes (wrong passwords!) ────────────
+            private void drawDecoyNotes(Graphics2D g2, double time) {
+                // Red decoy note (top-left area)
+                float f1 = (float)(Math.sin(time * 1.2) * 2);
+                g2.setColor(new Color(255, 120, 120));
+                g2.fillRect(100, (int)(200 + f1), 72, 55);
+                g2.setColor(new Color(200, 80, 80));
+                g2.fillPolygon(new int[]{172, 158, 172},
+                        new int[]{(int)(200+f1), (int)(200+f1), (int)(214+f1)}, 3);
+                g2.setFont(new Font("Consolas", Font.PLAIN, 9));
+                g2.setColor(new Color(80, 0, 0));
+                g2.drawString("WiFi Pass:", 106, (int)(218 + f1));
+                g2.drawString("office2024", 106, (int)(232 + f1));
+
+                // Blue decoy note (bottom-right area)
+                float f2 = (float)(Math.sin(time * 1.8 + 1) * 2);
+                g2.setColor(new Color(140, 200, 255));
+                g2.fillRect(900, (int)(475 + f2), 68, 50);
+                g2.setColor(new Color(100, 160, 220));
+                g2.fillPolygon(new int[]{968, 955, 968},
+                        new int[]{(int)(475+f2), (int)(475+f2), (int)(488+f2)}, 3);
+                g2.setFont(new Font("Consolas", Font.PLAIN, 8));
+                g2.setColor(new Color(0, 0, 100));
+                g2.drawString("guest /", 905, (int)(492 + f2));
+                g2.drawString("welcome1", 905, (int)(504 + f2));
+            }
+
+            // ── Draw desk drawer ──────────────────────────────────────
+            private void drawDeskDrawer(Graphics2D g2) {
+                g2.setColor(new Color(90, 58, 30));
+                g2.fillRoundRect(60, 520, 110, 40, 4, 4);
+                g2.setColor(new Color(70, 45, 20));
+                g2.drawRoundRect(60, 520, 110, 40, 4, 4);
+                // Handle
+                g2.setColor(new Color(160, 140, 100));
+                g2.fillRoundRect(100, 536, 30, 8, 3, 3);
+                // Keyhole
+                g2.setColor(new Color(40, 30, 15));
+                g2.fillOval(140, 537, 6, 6);
+            }
+
+            // ── Draw the hidden sticky note (only after 3+ items!) ────
+            private void drawStickyNote(Graphics2D g2, double time) {
+                float noteFloat = (float)(Math.sin(time * 1.5) * 2);
+
+                // Entrance animation — slide in from right
+                long timeSinceVisible = System.currentTimeMillis() - feedbackTime;
+                float slideOffset = Math.max(0, 150 - timeSinceVisible * 0.3f);
+
+                int noteX = (int)(780 + slideOffset);
+
+                // Glowing "NEW" indicator
+                if (!stickyNoteFound) {
+                    float glow = (float)(0.5 + 0.5 * Math.sin(time * 5));
+                    g2.setColor(new Color(255, 255, 0, (int)(glow * 120)));
+                    g2.fillOval(noteX + 70, (int)(360 + noteFloat), 25, 25);
+                    g2.setFont(new Font("Consolas", Font.BOLD, 9));
+                    g2.setColor(CYBER_RED);
+                    g2.drawString("NEW", noteX + 73, (int)(377 + noteFloat));
+                }
+
+                // Sticky note body
+                g2.setColor(STICKY_YELLOW);
+                g2.fillRect(noteX, (int)(370 + noteFloat), 88, 70);
