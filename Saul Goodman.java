@@ -637,4 +637,3 @@ import java.util.List;
                 totalPhishingElements = currentEmailElements.size();
             }
 
-            // ═══════════════════════════════════════════════════════════
