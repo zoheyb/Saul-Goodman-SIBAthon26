@@ -1499,4 +1499,494 @@ import java.util.List;
                         drawCentered(g2, "Good luck, Detective!", 400);
                     }
                 }
+  // Progress dots
+                int dotY = 440;
+                for (int i = 0; i < 3; i++) {
+                    g2.setColor(i == tutorialStep ? NEON_CYAN : new Color(100, 120, 140));
+                    g2.fillOval(W / 2 - 40 + i * 40, dotY, 10, 10);
+                }
+
+                // Navigation prompt
+                g2.setFont(HUD_FONT);
+                float pulse = (float)(0.5 + 0.5 * Math.sin(time * 4));
+                g2.setColor(new Color(0, (int)(230 * pulse), (int)(255 * pulse)));
+                drawCentered(g2, tutorialStep < 2
+                        ? ">>> PRESS SPACE TO CONTINUE <<<"
+                        : ">>> PRESS SPACE TO START <<<", 485);
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  LAPTOP LOGIN SCREEN
+            // ═══════════════════════════════════════════════════════════
+            private void renderLaptopLogin(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                // Dark background
+                g2.setColor(new Color(10, 10, 20));
+                g2.fillRect(0, 0, W, H);
+                drawFloatingParticles(g2, time, 10);
+
+                // Laptop fullscreen
+                float panelY = (float)(150 + Math.sin(time) * 5);
+                drawNeonPanel(g2, W / 2 - 300, (int) panelY, 600, 350,
+                        hasPassword ? NEON_GREEN : DIM_CYAN);
+
+                // Title
+                g2.setFont(BIG_FONT);
+                g2.setColor(NEON_CYAN);
+                drawCentered(g2, "LAPTOP LOGIN", (int)(panelY + 50));
+
+                // Lock icon
+                g2.setColor(hasPassword ? NEON_GREEN : CYBER_RED);
+                int lx = W / 2, ly = (int)(panelY + 100);
+                g2.fillRoundRect(lx - 20, ly, 40, 30, 6, 6);
+                g2.setStroke(new BasicStroke(4));
+                g2.drawArc(lx - 14, ly - 18, 28, 28, 0, 180);
+                g2.setStroke(new BasicStroke(1));
+
+                // Password field
+                g2.setColor(new Color(30, 35, 50));
+                g2.fillRoundRect(W / 2 - 150, (int)(panelY + 160), 300, 45, 8, 8);
+                g2.setColor(DIM_CYAN);
+                g2.setStroke(new BasicStroke(2));
+                g2.drawRoundRect(W / 2 - 150, (int)(panelY + 160), 300, 45, 8, 8);
+                g2.setStroke(new BasicStroke(1));
+
+                // Password text or placeholder
+                g2.setFont(LAPTOP_FONT);
+                if (passwordInput.isEmpty()) {
+                    g2.setColor(new Color(100, 110, 130));
+                    g2.drawString("Type password here...",
+                            W / 2 - 130, (int)(panelY + 190));
+                } else {
+                    g2.setColor(Color.WHITE);
+                    g2.drawString(passwordInput,
+                            W / 2 - 130, (int)(panelY + 190));
+                }
+
+                // Blinking cursor
+                if ((int)(time * 2) % 2 == 0) {
+                    int cursorX = W / 2 - 130
+                            + g2.getFontMetrics().stringWidth(passwordInput);
+                    g2.setColor(NEON_CYAN);
+                    g2.fillRect(cursorX + 2, (int)(panelY + 172), 2, 22);
+                }
+
+                // Wrong password message
+                if (passwordWrong) {
+                    g2.setFont(HUD_FONT);
+                    g2.setColor(CYBER_RED);
+                    drawCentered(g2, String.format(
+                                    "✗ WRONG PASSWORD! %d attempt(s) left", passwordAttemptsLeft),
+                            (int)(panelY + 235));
+                }
+
+                // Countdown timer on login screen too
+                boolean critical = remainingSeconds <= 15;
+                Color tc = critical ? CYBER_RED : AMBER;
+                float tp = critical ? (float)(0.6 + 0.4 * Math.sin(time * 8)) : 1f;
+                g2.setFont(HUD_FONT);
+                g2.setColor(new Color(tc.getRed(), tc.getGreen(), tc.getBlue(),
+                        (int)(255 * tp)));
+                drawCentered(g2, String.format("Time Left: %02d:%02d",
+                                remainingSeconds / 60, remainingSeconds % 60),
+                        (int)(panelY + 265));
+
+                // Hint
+                g2.setFont(SMALL_FONT);
+                g2.setColor(new Color(100, 110, 130));
+                drawCentered(g2, "Type the password and press ENTER | Press ESC to go back",
+                        (int)(panelY + 295));
+
+                // Instructions
+                g2.setFont(HUD_FONT);
+                float pulse = (float)(0.5 + 0.5 * Math.sin(time * 4));
+                g2.setColor(new Color(0, (int)(200 * pulse), (int)(230 * pulse)));
+                drawCentered(g2, "⌨ ENTER PASSWORD TO UNLOCK",
+                        (int)(panelY + 330));
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  LEVEL COMPLETE
+            // ═══════════════════════════════════════════════════════════
+            private void renderLevelComplete(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                GradientPaint gp = new GradientPaint(0, 0,
+                        new Color(8, 18, 12), W, H, new Color(12, 28, 18));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, W, H);
+
+                // Subtle grid
+                g2.setColor(new Color(50, 230, 130, 6));
+                for (int x = 0; x < W; x += 50) g2.drawLine(x, 0, x, H);
+                for (int y = 0; y < H; y += 50) g2.drawLine(0, y, W, y);
+
+                drawFloatingParticles(g2, time, 20);
+                calculateScore();
+
+                // Ambient glow
+                g2.setColor(new Color(50, 230, 130, 10));
+                g2.fillOval(W/2 - 200, 100, 400, 400);
+
+                // Panel
+                float panelY = (float)(110 + Math.sin(time) * 4);
+                drawNeonPanel(g2, W / 2 - 310, (int) panelY, 620, 440, NEON_GREEN);
+
+                // Title
+                g2.setFont(TITLE_FONT);
+                g2.setColor(SOFT_WHITE);
+                drawCentered(g2, "LEVEL COMPLETE", (int)(panelY + 55));
+
+                // Rank with glow
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 60));
+                Color rankColor = rankGrade.equals("S") ? new Color(255, 215, 0) :
+                        rankGrade.equals("A") ? NEON_GREEN :
+                                rankGrade.equals("B") ? NEON_CYAN :
+                                        rankGrade.equals("C") ? AMBER : CYBER_RED;
+                // Glow
+                g2.setColor(new Color(rankColor.getRed(), rankColor.getGreen(), rankColor.getBlue(), 25));
+                drawCentered(g2, "RANK: " + rankGrade, (int)(panelY + 131));
+                drawCentered(g2, "RANK: " + rankGrade, (int)(panelY + 129));
+                g2.setColor(rankColor);
+                drawCentered(g2, "RANK: " + rankGrade, (int)(panelY + 130));
+
+                // Score
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 22));
+                g2.setColor(NEON_CYAN);
+                drawCentered(g2, "SCORE: " + finalScore + " pts", (int)(panelY + 185));
+
+                // Stats line
+                g2.setFont(LABEL_FONT);
+                g2.setColor(new Color(180, 200, 215));
+                drawCentered(g2, String.format("Time: %02d:%02d  |  Objects: %d/%d  |  Hints: %d",
+                        elapsedSeconds / 60, elapsedSeconds % 60, objectsFound, totalObjects, hintsUsed),
+                        (int)(panelY + 220));
+
+                // Divider
+                g2.setColor(new Color(50, 230, 130, 30));
+                g2.fillRect(W/2 - 200, (int)(panelY + 245), 400, 1);
+
+                // Security lesson
+                g2.setFont(DIALOGUE_FONT);
+                g2.setColor(AMBER);
+                drawCentered(g2, "🔐 SECURITY LESSON", (int)(panelY + 280));
+                g2.setColor(SOFT_WHITE);
+                drawCentered(g2, "Never write passwords on sticky notes!", (int)(panelY + 310));
+                drawCentered(g2, "Use a password manager and enable 2FA.", (int)(panelY + 335));
+
+                // Prompt
+                float pulse = (float)(0.5 + 0.5 * Math.sin(time * 3));
+                g2.setFont(HUD_FONT);
+                g2.setColor(new Color(50, 230, 130, (int)(120 + 135 * pulse)));
+                drawCentered(g2, "PRESS ENTER FOR LEVEL SELECT",
+                        (int)(panelY + 405));
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  MISSION FAILED SCREEN
+            // ═══════════════════════════════════════════════════════════
+            private void renderMissionFailed(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                // Deep red gradient
+                GradientPaint gp = new GradientPaint(0, 0,
+                        new Color(25, 5, 8), W, H, new Color(40, 8, 12));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, W, H);
+
+                // Red grid
+                g2.setColor(new Color(255, 70, 90, 6));
+                for (int x = 0; x < W; x += 50) g2.drawLine(x, 0, x, H);
+                for (int y = 0; y < H; y += 50) g2.drawLine(0, y, W, y);
+
+                drawFloatingParticles(g2, time, 8);
+
+                // Glitch lines (subtler)
+                for (int i = 0; i < 4; i++) {
+                    int gy = rng.nextInt(H);
+                    g2.setColor(new Color(255, 30, 50, 15 + rng.nextInt(20)));
+                    g2.fillRect(0, gy, W, 1 + rng.nextInt(2));
+                }
+
+                // Fail panel (compact)
+                float panelY = (float)(180 + Math.sin(time * 0.8) * 5);
+                drawNeonPanel(g2, W / 2 - 280, (int) panelY, 560, 280, CYBER_RED);
+
+                // Title
+                g2.setFont(TITLE_FONT);
+                g2.setColor(SOFT_WHITE);
+                drawCentered(g2, "MISSION FAILED", (int)(panelY + 55));
+
+                // Reason
+                g2.setFont(DIALOGUE_FONT);
+                g2.setColor(new Color(255, 200, 200));
+                drawCentered(g2, failReason, (int)(panelY + 110));
+
+                // Quick stats
+                g2.setFont(LABEL_FONT);
+                g2.setColor(new Color(200, 180, 180));
+                drawCentered(g2, String.format("Found: %d/%d  |  Password: %s",
+                        objectsFound, totalObjects, hasPassword ? "Yes" : "No"),
+                        (int)(panelY + 155));
+
+                g2.setColor(AMBER);
+                drawCentered(g2, "💡 Click carefully and use hints wisely!",
+                        (int)(panelY + 195));
+
+                // Retry prompt
+                g2.setFont(HUD_FONT);
+                float pulse = (float)(0.5 + 0.5 * Math.sin(time * 3));
+                g2.setColor(new Color(255, 70, 90, (int)(120 + 135 * pulse)));
+                drawCentered(g2, "R = RETRY  |  ESC = LEVEL SELECT",
+                        (int)(panelY + 245));
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  LEVEL SELECT (City Map)
+            // ═══════════════════════════════════════════════════════════
+            private void renderLevelSelect(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                // Deep blue gradient
+                GradientPaint mapBg = new GradientPaint(0, 0,
+                        new Color(12, 15, 28), W, H, new Color(18, 22, 38));
+                g2.setPaint(mapBg);
+                g2.fillRect(0, 0, W, H);
+
+                // Subtle grid
+                g2.setColor(new Color(80, 200, 255, 8));
+                for (int x = 0; x < W; x += 50) g2.drawLine(x, 0, x, H);
+                for (int y = 0; y < H; y += 50) g2.drawLine(0, y, W, y);
+
+                // Title with glow
+                g2.setFont(TITLE_FONT);
+                g2.setColor(new Color(140, 80, 255, 20));
+                drawCentered(g2, "SELECT MISSION", 56);
+                drawCentered(g2, "SELECT MISSION", 54);
+                g2.setColor(SOFT_WHITE);
+                drawCentered(g2, "SELECT MISSION", 55);
+
+                // Decorative roads
+                g2.setColor(new Color(50, 55, 72));
+                g2.setStroke(new BasicStroke(1.5f));
+                for (int i = 80; i < W; i += 120) g2.drawLine(i, 80, i, H - 40);
+                for (int i = 80; i < H; i += 100) g2.drawLine(40, i, W - 40, i);
+                g2.setStroke(new BasicStroke(1));
+
+                // Buildings (decorative)
+                for (int i = 0; i < 15; i++) {
+                    int bx = 100 + (i % 5) * 200;
+                    int by = 100 + (i / 5) * 180;
+                    int bw = 60 + (i * 17) % 60;
+                    int bh = 40 + (i * 13) % 50;
+                    g2.setColor(new Color(28, 32, 50));
+                    g2.fillRoundRect(bx, by, bw, bh, 4, 4);
+                    // Windows with warm glow
+                    g2.setColor(new Color(255, 210, 80, 25));
+                    for (int wy = 0; wy < bh - 10; wy += 12) {
+                        for (int wx = 0; wx < bw - 10; wx += 14) {
+                            g2.fillRect(bx + 4 + wx, by + 4 + wy, 6, 6);
+                        }
+                    }
+                }
+
+                // Level pins (improved)
+                for (int i = 0; i < levelPins.length; i++) {
+                    int px = levelPins[i][0];
+                    float py = (float)(levelPins[i][1] + Math.sin(time * 1.8 + i) * 5);
+                    boolean unlocked = levelsUnlocked[i];
+
+                    Color pinColor = unlocked ? (levelsCompleted[i] ? NEON_GREEN : AMBER)
+                            : new Color(70, 70, 80);
+
+                    // Pin glow
+                    if (unlocked) {
+                        g2.setColor(new Color(pinColor.getRed(), pinColor.getGreen(),
+                                pinColor.getBlue(), 15));
+                        g2.fillOval(px - 25, (int)(py - 25), 50, 50);
+                    }
+
+                    // Shadow
+                    g2.setColor(new Color(0, 0, 0, 40));
+                    g2.fillOval(px - 10, (int)(py + 20), 20, 6);
+
+                    // Pin circle
+                    g2.setColor(pinColor);
+                    g2.fillOval(px - 14, (int)(py - 14), 28, 28);
+                    // Inner dot
+                    g2.setColor(new Color(0, 0, 0, 60));
+                    g2.fillOval(px - 4, (int)(py - 4), 8, 8);
+
+                    // Connector
+                    g2.setColor(pinColor);
+                    g2.setStroke(new BasicStroke(1.5f));
+                    g2.drawLine(px, (int)(py + 14), px, (int)(py + 20));
+                    g2.setStroke(new BasicStroke(1));
+
+                    // Label
+                    g2.setFont(LABEL_FONT);
+                    g2.setColor(unlocked ? (levelsCompleted[i] ? NEON_GREEN : AMBER)
+                            : new Color(100, 100, 115));
+                    FontMetrics fm = g2.getFontMetrics();
+                    g2.drawString(levelNames[i],
+                            px - fm.stringWidth(levelNames[i]) / 2, (int)(py + 40));
+
+                    // Status badge
+                    g2.setFont(SMALL_FONT);
+                    String status = levelsCompleted[i] ? "COMPLETE \u2605"
+                            : (unlocked ? "AVAILABLE" : "LOCKED");
+                    g2.setColor(levelsCompleted[i] ? NEON_GREEN
+                            : (unlocked ? AMBER : new Color(70, 70, 80)));
+                    fm = g2.getFontMetrics();
+                    g2.drawString(status,
+                            px - fm.stringWidth(status) / 2, (int)(py + 54));
+                }
+
+                // Bottom bar
+                g2.setColor(new Color(40, 130, 160, 60));
+                g2.fillRect(0, H - 28, W, 28);
+                g2.setFont(SMALL_FONT);
+                g2.setColor(new Color(80, 200, 255, 120));
+                drawCentered(g2, "Click a level to play  |  ESC to exit", H - 10);
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  LEVEL 2 RENDERING METHODS
+            // ═══════════════════════════════════════════════════════════
+
+            private void renderLevel2Intro(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                // Background with digital rain effect
+                GradientPaint gp = new GradientPaint(0, 0,
+                        new Color(10, 20, 30), 0, H, new Color(20, 30, 40));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, W, H);
+
+                // Digital rain effect
+                g2.setColor(new Color(0, 255, 0, 20));
+                for (int i = 0; i < 50; i++) {
+                    int x = (i * 23) % W;
+                    int y = (int)((time * 100 + i * 50) % H);
+                    g2.drawString("101010", x, y);
+                }
+
+                // Title
+                g2.setFont(TITLE_FONT);
+                g2.setColor(NEON_GREEN);
+                drawCentered(g2, "LEVEL 2: THE PHISHING LAB", (int)(100 + Math.sin(time) * 10));
+
+                // Dialogue panel
+                drawNeonPanel(g2, W / 2 - 350, 200, 700, 320, NEON_GREEN);
+
+                // Email icon
+                g2.setColor(NEON_GREEN);
+                g2.fillRect(W / 2 - 330, 220, 40, 30);
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Arial", Font.BOLD, 20));
+                g2.drawString("@", W / 2 - 318, 245);
+
+                // Show dialogues up to current phase
+                g2.setFont(DIALOGUE_FONT);
+                for (int i = 0; i <= Math.min(quizPhase, level2Intro.length - 1); i++) {
+                    float lineY = (float)(240 + i * 35 + Math.sin(time * 2 + i * 0.3) * 2);
+                    String line = level2Intro[i];
+                    if (i == quizPhase) {
+                        long elapsed = System.currentTimeMillis() - stateStartTime;
+                        int chars = (int)(elapsed / 30);
+                        if (chars > line.length()) chars = line.length();
+                        line = line.substring(0, chars);
+                    }
+                    g2.setColor(i == quizPhase ? Color.WHITE : new Color(150, 200, 150));
+                    g2.drawString(line, W / 2 - 310, (int) lineY);
+                }
+
+                // Prompt
+                float pulse = (float)(0.5 + 0.5 * Math.sin(time * 4));
+                g2.setFont(HUD_FONT);
+                g2.setColor(new Color(0, (int)(255 * pulse), (int)(120 * pulse)));
+                drawCentered(g2, quizPhase < level2Intro.length - 1
+                                ? ">>> PRESS ENTER TO CONTINUE <<<"
+                                : ">>> PRESS ENTER TO START INVESTIGATION <<<",
+                        (int)(500 + Math.sin(time * 2) * 5));
+            }
+
+            private void renderLevel2Phishing(Graphics2D g2) {
+                double time = System.currentTimeMillis() / 1000.0;
+
+                // Office background
+                GradientPaint office = new GradientPaint(0, 0,
+                        new Color(45, 55, 65), 0, H, new Color(35, 45, 55));
+                g2.setPaint(office);
+                g2.fillRect(0, 0, W, H);
+
+                // Cubicle walls
+                g2.setColor(new Color(60, 70, 80, 100));
+                for (int i = 0; i < 3; i++) {
+                    g2.fillRect(50 + i * 300, 100, 10, 500);
+                }
+
+                // Title
+                g2.setFont(TITLE_FONT.deriveFont(30f));
+                g2.setColor(NEON_CYAN);
+                g2.drawString("📧 PHISHING DETECTION LAB", 50, 70);
+
+                // Draw email inbox
+                g2.setFont(new Font("Arial", Font.BOLD, 18));
+                g2.setColor(Color.WHITE);
+                g2.drawString("INBOX (5 unread messages)", 150, 160);
+
+                // Draw email boxes
+                for (int i = 0; i < emails.size(); i++) {
+                    Email email = emails.get(i);
+                    Rectangle r = email.bounds;
+
+                    // Draw email background
+                    if (email.classified) {
+                        g2.setColor(email.classification.equals("phishing") ?
+                                new Color(255, 100, 100, 50) : new Color(100, 255, 100, 50));
+                    } else {
+                        g2.setColor(new Color(250, 250, 245, 200));
+                    }
+                    g2.fillRoundRect(r.x, r.y, r.width, r.height, 10, 10);
+
+                    // Draw border
+                    g2.setColor(email.classified ?
+                            (email.classification.equals("phishing") ? CYBER_RED : NEON_GREEN) :
+                            new Color(100, 100, 150));
+                    g2.setStroke(new BasicStroke(email == selectedEmail ? 3 : 1));
+                    g2.drawRoundRect(r.x, r.y, r.width, r.height, 10, 10);
+                    g2.setStroke(new BasicStroke(1));
+
+                    // Email icon
+                    g2.setColor(email.isPhishing ? new Color(255, 100, 100) : new Color(100, 100, 255));
+                    g2.fillRect(r.x + 10, r.y + 15, 20, 20);
+                    g2.setColor(Color.WHITE);
+                    g2.setFont(SMALL_FONT);
+                    g2.drawString("@", r.x + 16, r.y + 30);
+
+                    // Email subject (truncated)
+                    g2.setColor(Color.BLACK);
+                    g2.setFont(new Font("Arial", Font.BOLD, 11));
+                    String subject = email.subject;
+                    if (subject.length() > 15) subject = subject.substring(0, 14) + "...";
+                    g2.drawString(subject, r.x + 35, r.y + 25);
+
+                    // Sender (truncated)
+                    g2.setFont(new Font("Arial", Font.PLAIN, 9));
+                    String sender = email.sender;
+                    if (sender.length() > 15) sender = sender.substring(0, 14) + "...";
+                    g2.drawString(sender, r.x + 35, r.y + 38);
+
+                    // Status
+                    if (email.classified) {
+                        g2.setFont(new Font("Arial", Font.BOLD, 12));
+                        g2.setColor(email.classification.equals("phishing") ? CYBER_RED : NEON_GREEN);
+                        g2.drawString(email.classification.equals("phishing") ? "⚠ PHISHING" : "✓ SAFE",
+                                r.x + 20, r.y + 70);
+                    } else if (email.analyzed) {
+                        g2.setColor(WARNING_ORANGE);
+                        g2.fillOval(r.x + r.width - 25, r.y + 70, 10, 10);
+                    }
 
