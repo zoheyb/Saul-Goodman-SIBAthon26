@@ -368,3 +368,273 @@ import java.util.List;
                 gameTimer.start();
             }
 
+ // ═══════════════════════════════════════════════════════════
+            //  SOUND SYSTEM
+            // ═══════════════════════════════════════════════════════════
+            private void playSound(String soundType) {
+                new Thread(() -> {
+                    try {
+                        if (soundType.equals("click")) {
+                            Toolkit.getDefaultToolkit().beep();
+                        } else if (soundType.equals("correct")) {
+                            // Play ascending beep
+                            for (int i = 0; i < 3; i++) {
+                                Toolkit.getDefaultToolkit().beep();
+                                Thread.sleep(50);
+                            }
+                        } else if (soundType.equals("wrong")) {
+                            // Play descending tone
+                            Toolkit.getDefaultToolkit().beep();
+                            Thread.sleep(100);
+                            Toolkit.getDefaultToolkit().beep();
+                        } else if (soundType.equals("hint")) {
+                            Toolkit.getDefaultToolkit().beep();
+                            Thread.sleep(80);
+                            Toolkit.getDefaultToolkit().beep();
+                        }
+                    } catch (Exception e) {}
+                }).start();
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  HINT SYSTEM
+            // ═══════════════════════════════════════════════════════════
+            private void useHint() {
+                if (hintsUsed >= MAX_HINTS) {
+                    feedbackMsg = "No hints remaining!";
+                    feedbackTime = System.currentTimeMillis();
+                    playSound("wrong");
+                    return;
+                }
+
+                // Deduct time
+                missionStartTime -= 5000; // -5 seconds penalty
+                hintsUsed++;
+                hintTime = System.currentTimeMillis();
+                playSound("hint");
+
+                // Progressive hints
+                if (hintsUsed == 1) {
+                    currentHint = "💡 Look for yellow paper on the desk";
+                } else if (hintsUsed == 2) {
+                    currentHint = "💡 The password is on a sticky note - find 3+ objects first!";
+                } else {
+                    currentHint = "💡 Check the RIGHT side of the desk after finding items";
+                }
+
+                feedbackMsg = String.format("Hint used! -5 seconds. (%d/%d remaining)",
+                        MAX_HINTS - hintsUsed, MAX_HINTS);
+                feedbackTime = System.currentTimeMillis();
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            //  SCORE CALCULATION
+            // ═══════════════════════════════════════════════════════════
+            private void calculateScore() {
+                int timeBonus = remainingSeconds * 10; // 10 points per second
+                int accuracyBonus = (totalObjects - wrongClicks) * 50; // 50 points per correct click
+                int speedBonus = 0;
+
+                if (elapsedSeconds < 45) speedBonus = 500; // Under 45s
+                else if (elapsedSeconds < 60) speedBonus = 300; // Under 60s
+                else if (elapsedSeconds < 75) speedBonus = 100; // Under 75s
+
+                int hintPenalty = hintsUsed * 100;
+                int wrongPasswordPenalty = (3 - passwordAttemptsLeft) * 200;
+
+                finalScore = Math.max(0, timeBonus + accuracyBonus + speedBonus - hintPenalty - wrongPasswordPenalty);
+
+                // Calculate rank
+                if (finalScore >= 1500 && elapsedSeconds < 45 && wrongClicks == 0) {
+                    rankGrade = "S"; // Perfect
+                } else if (finalScore >= 1200) {
+                    rankGrade = "A"; // Excellent
+                } else if (finalScore >= 900) {
+                    rankGrade = "B"; // Good
+                } else if (finalScore >= 600) {
+                    rankGrade = "C"; // Average
+                } else {
+                    rankGrade = "D"; // Pass
+                }
+            }
+
+            private void calculateLevel2Score() {
+                int baseScore = correctClassifications * 200;
+                int timeBonus = level2RemainingSeconds * 5;
+                int quizBonus = quizScore * 100;
+                int thoroughnessBonus = (elementsIdentified == totalPhishingElements && totalPhishingElements > 0) ? 500 : 0;
+
+                level2FinalScore = Math.max(0, baseScore + timeBonus + quizBonus + thoroughnessBonus);
+
+                // Calculate rank
+                int totalPossible = emails.size();
+                float accuracy = (float)correctClassifications / totalPossible;
+
+                if (level2FinalScore >= 2000 && accuracy == 1.0 && quizScore == quizQuestions.length) {
+                    level2RankGrade = "S"; // Perfect
+                } else if (level2FinalScore >= 1500) {
+                    level2RankGrade = "A"; // Excellent
+                } else if (level2FinalScore >= 1000) {
+                    level2RankGrade = "B"; // Good
+                } else if (level2FinalScore >= 600) {
+                    level2RankGrade = "C"; // Average
+                } else {
+                    level2RankGrade = "D"; // Pass
+                }
+            }
+
+            /** Initialize all clickable objects on the desk */
+            private void initDeskItems() {
+                deskItems.clear();
+                stickyNoteVisible = false;
+
+                // ── The items are placed relative to the desk area ─────
+                // STICKY NOTE (the REAL password!) — HIDDEN until 3+ items found
+                deskItems.add(new ClickableItem("Sticky Note",
+                        780, 370, 90, 75,
+                        "A yellow sticky note! It reads: 'Password: admin123'",
+                        STICKY_YELLOW));
+
+                // DECOY STICKY NOTE 1 — wrong password!
+                deskItems.add(new ClickableItem("Red Sticky Note",
+                        100, 200, 75, 60,
+                        "A red sticky note reads: 'WiFi: office2024'. Not what you need!",
+                        CYBER_RED));
+
+                // DECOY STICKY NOTE 2 — wrong password!
+                deskItems.add(new ClickableItem("Blue Sticky Note",
+                        900, 475, 70, 55,
+                        "A blue note: 'login: guest / pass: welcome1'. Hmm, not for this laptop...",
+                        NEON_CYAN));
+
+                // COFFEE MUG — red herring
+                deskItems.add(new ClickableItem("Coffee Mug",
+                        160, 340, 65, 80,
+                        "A half-empty coffee mug. Still warm... Someone was here recently.",
+                        MUG_COLOR));
+
+                // SCATTERED PAPERS — clue hint
+                deskItems.add(new ClickableItem("Scattered Papers",
+                        400, 410, 140, 60,
+                        "Password Policy: 'DO NOT write passwords down!' — Someone didn't listen...",
+                        PAPER_WHITE));
+
+                // USB DRIVE — suspicious
+                deskItems.add(new ClickableItem("USB Drive",
+                        620, 490, 50, 20,
+                        "A suspicious unmarked USB drive. Never plug unknown USBs! [-5 sec penalty]",
+                        CYBER_RED));
+
+                // PHONE — info
+                deskItems.add(new ClickableItem("Smartphone",
+                        280, 440, 55, 90,
+                        "2FA notifications DISABLED. The suspect clearly ignores security!",
+                        new Color(40, 40, 50)));
+
+                // DRAWER HANDLE — new item
+                deskItems.add(new ClickableItem("Desk Drawer",
+                        60, 520, 110, 40,
+                        "A locked drawer. You hear something rattle inside. Key not found.",
+                        DESK_BROWN));
+
+                // LAPTOP — main interaction (always last for z-order)
+                deskItems.add(new ClickableItem("Laptop",
+                        430, 180, 250, 180,
+                        "", // handled separately
+                        SCREEN_GLOW));
+            }
+
+            /** Initialize Level 2 phishing emails */
+            private void initLevel2Emails() {
+                emails.clear();
+
+                // Email 1 - Phishing
+                emails.add(new Email(
+                        "security@paypa1.com",
+                        "URGENT: Your account has been suspended!",
+                        "Dear valued customer,\n\nYour PayPal account has been suspended due to suspicious activity.\nClick here to verify your account immediately: http://paypa1-verify.com\n\nFailure to verify within 24 hours will result in permanent closure.",
+                        true
+                ));
+
+                // Email 2 - Safe
+                emails.add(new Email(
+                        "newsletter@techweekly.com",
+                        "Your Tech Weekly Digest",
+                        "Hello subscriber,\n\nHere are this week's top tech stories:\n- AI breakthrough announced\n- New smartphone releases\n- Cybersecurity tips\n\nTo unsubscribe, click here.\n\nThanks,\nTech Weekly Team",
+                        false
+                ));
+
+                // Email 3 - Phishing
+                emails.add(new Email(
+                        "it-support@company.com",
+                        "Password Expiry Notice",
+                        "Your password will expire in 24 hours.\nPlease keep your current password.\n\nTo reset your password, visit: http://company-security.com/reset\n\nIT Support",
+                        true
+                ));
+
+                // Email 4 - Phishing
+                emails.add(new Email(
+                        "hr@companysystems.net",
+                        "Important: Update your direct deposit",
+                        "Dear Employee,\n\nOur payroll system has been upgraded.\nPlease update your direct deposit information immediately to ensure timely payment.\n\nLogin here: http://companysystems-payroll.com\n\nHR Department",
+                        true
+                ));
+
+                // Email 5 - Safe
+                emails.add(new Email(
+                        "no-reply@slack.com",
+                        "New messages in #general",
+                        "Hi there,\n\nYou have 3 new messages in the #general channel:\n- @alice: Team meeting at 2pm\n- @bob: Project update\n- @carol: Lunch plans?\n\nView conversation: https://slack.com/messages\n\nThanks,\nSlack Team",
+                        false
+                ));
+
+                // Set bounds for emails (grid layout)
+                int startX = 150;
+                int startY = 200;
+                int width = 160;
+                int height = 100;
+                int spacing = 20;
+
+                for (int i = 0; i < emails.size(); i++) {
+                    int col = i % 3;
+                    int row = i / 3;
+                    int x = startX + col * (width + spacing);
+                    int y = startY + row * (height + spacing);
+                    emails.get(i).bounds = new Rectangle(x, y, width, height);
+                }
+            }
+
+            private void analyzeEmailElements(Email email) {
+                currentEmailElements.clear();
+
+                if (!email.isPhishing) return;
+
+                // Check sender domain (in email detail view coordinates)
+                if (email.sender.contains("paypa1") || email.sender.contains("1")) {
+                    currentEmailElements.add(new PhishingElement(
+                            "sender",
+                            new Rectangle(340, 285, 200, 20),
+                            "Misspelled: 'paypa1.com' uses '1' not 'l'"
+                    ));
+                }
+
+                if (email.content.contains("http://")) {
+                    currentEmailElements.add(new PhishingElement(
+                            "link",
+                            new Rectangle(340, 380, 150, 20),
+                            "Unencrypted HTTP link (not HTTPS)"
+                    ));
+                }
+
+                if (email.content.contains("URGENT") || email.content.contains("24 hours") || email.content.contains("immediately")) {
+                    currentEmailElements.add(new PhishingElement(
+                            "urgency",
+                            new Rectangle(340, 340, 200, 20),
+                            "Creates false urgency pressure"
+                    ));
+                }
+
+                totalPhishingElements = currentEmailElements.size();
+            }
+
+            // ═══════════════════════════════════════════════════════════
