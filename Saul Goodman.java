@@ -1208,3 +1208,295 @@ import java.util.List;
                 // Sticky note body
                 g2.setColor(STICKY_YELLOW);
                 g2.fillRect(noteX, (int)(370 + noteFloat), 88, 70);
+                
+                // Folded corner
+                g2.setColor(new Color(230, 210, 70));
+                int[] xCorner = {noteX+88, noteX+70, noteX+88};
+                int[] yCorner = {(int)(370 + noteFloat), (int)(370 + noteFloat),
+                        (int)(388 + noteFloat)};
+                g2.fillPolygon(xCorner, yCorner, 3);
+
+                // Shadow under note
+                g2.setColor(new Color(0, 0, 0, 30));
+                g2.fillRect(noteX+3, (int)(443 + noteFloat), 88, 4);
+
+                // Text on sticky note
+                Font noteFont = HANDWRITING.deriveFont(Font.PLAIN, 13f);
+                g2.setFont(noteFont);
+                g2.setColor(new Color(30, 30, 180));
+                g2.drawString("Password:", noteX+8, (int)(393 + noteFloat));
+                g2.setFont(noteFont.deriveFont(Font.BOLD, 15f));
+                g2.setColor(new Color(200, 30, 30));
+                g2.drawString("admin123", noteX+8, (int)(418 + noteFloat));
+
+                // Small smiley
+                g2.setFont(SMALL_FONT);
+                g2.setColor(new Color(30, 30, 180));
+                g2.drawString(":)", noteX+60, (int)(435 + noteFloat));
+
+                // If found, show glow
+                if (stickyNoteFound) {
+                    float glow = (float)(0.3 + 0.2 * Math.sin(time * 5));
+                    g2.setColor(new Color(0, 255, 120, (int)(glow * 200)));
+                    g2.setStroke(new BasicStroke(3));
+                    g2.drawRoundRect(noteX-3, (int)(367 + noteFloat), 94, 76, 4, 4);
+                    g2.setStroke(new BasicStroke(1));
+                }
+            }
+
+            // ── Draw USB drive ────────────────────────────────────────
+            private void drawUSBDrive(Graphics2D g2) {
+                // USB body
+                g2.setColor(CYBER_RED);
+                g2.fillRoundRect(620, 490, 45, 18, 4, 4);
+                // USB connector
+                g2.setColor(new Color(180, 180, 190));
+                g2.fillRect(660, 494, 12, 10);
+                // LED light
+                g2.setColor(new Color(255, 0, 0, 180));
+                g2.fillOval(628, 496, 6, 6);
+                // Label
+                g2.setColor(Color.WHITE);
+                g2.setFont(new Font("Consolas", Font.PLAIN, 7));
+                g2.drawString("???", 636, 503);
+            }
+
+            // ── Draw smartphone ───────────────────────────────────────
+            private void drawSmartphone(Graphics2D g2, double time) {
+                // Phone body
+                g2.setColor(new Color(30, 30, 35));
+                g2.fillRoundRect(280, 440, 52, 88, 8, 8);
+                // Screen
+                g2.setColor(new Color(20, 25, 50));
+                g2.fillRoundRect(284, 450, 44, 68, 4, 4);
+                // Notification bar
+                g2.setColor(CYBER_RED);
+                g2.fillRect(284, 450, 44, 12);
+                g2.setFont(new Font("Consolas", Font.PLAIN, 7));
+                g2.setColor(Color.WHITE);
+                g2.drawString("2FA OFF!", 289, 459);
+                // Time on screen
+                float flicker = (float)(0.7 + 0.3 * Math.sin(time * 2));
+                g2.setColor(new Color(150, 150, 200, (int)(flicker * 255)));
+                g2.setFont(new Font("Consolas", Font.BOLD, 14));
+                g2.drawString("16:07", 290, 490);
+                // Home button
+                g2.setColor(new Color(50, 50, 55));
+                g2.fillOval(298, 520, 16, 5);
+            }
+
+            // ── Draw pen holder ───────────────────────────────────────
+            private void drawPenHolder(Graphics2D g2) {
+                // Holder cylinder
+                g2.setColor(new Color(70, 70, 80));
+                g2.fillRoundRect(900, 190, 40, 70, 6, 6);
+                g2.setColor(new Color(60, 60, 70));
+                g2.fillOval(900, 185, 40, 14);
+                // Pens
+                Color[] penColors = {CYBER_RED, NEON_CYAN, AMBER,
+                        new Color(100, 200, 100)};
+                for (int i = 0; i < penColors.length; i++) {
+                    g2.setColor(penColors[i]);
+                    g2.setStroke(new BasicStroke(3));
+                    g2.drawLine(908 + i * 8, 190, 905 + i * 10, 160 - i * 5);
+                    g2.setStroke(new BasicStroke(1));
+                }
+            }
+
+            // ── Draw mouse device ─────────────────────────────────────
+            private void drawMouseDevice(Graphics2D g2) {
+                g2.setColor(new Color(60, 60, 65));
+                g2.fillRoundRect(700, 250, 35, 55, 15, 15);
+                // Scroll wheel
+                g2.setColor(new Color(80, 80, 85));
+                g2.fillRoundRect(713, 260, 8, 12, 3, 3);
+                // Wire
+                g2.setColor(new Color(50, 50, 55));
+                g2.setStroke(new BasicStroke(2));
+                g2.drawLine(717, 250, 720, 200);
+                g2.setStroke(new BasicStroke(1));
+            }
+
+            // ── HUD overlay ──────────────────────────────────────
+            private void drawHUD(Graphics2D g2, double time) {
+                // Top HUD bar — single clean row
+                g2.setColor(new Color(10, 10, 20, 200));
+                g2.fillRect(0, 0, W, 38);
+                g2.setColor(new Color(0, 230, 255, 50));
+                g2.drawLine(0, 38, W, 38);
+
+                g2.setFont(HUD_FONT);
+                g2.setColor(NEON_CYAN);
+                g2.drawString("LEVEL 1", 20, 25);
+
+                // Timer
+                boolean critical = remainingSeconds <= 15;
+                boolean warning  = remainingSeconds <= 30 && !critical;
+                Color timerColor = critical ? CYBER_RED : (warning ? AMBER : NEON_GREEN);
+                float timerPulse = critical ? (float)(0.6 + 0.4 * Math.sin(time * 6)) : 1f;
+                g2.setColor(new Color(timerColor.getRed(), timerColor.getGreen(),
+                        timerColor.getBlue(), (int)(255 * timerPulse)));
+                g2.drawString(String.format("⏱ %02d:%02d",
+                        remainingSeconds / 60, remainingSeconds % 60), 130, 25);
+
+                // Timer bar (compact)
+                float timerFrac = (float) remainingSeconds / MISSION_TIME_LIMIT;
+                g2.setColor(new Color(30, 30, 50));
+                g2.fillRoundRect(260, 12, 150, 14, 5, 5);
+                g2.setColor(timerColor);
+                g2.fillRoundRect(260, 12, (int)(150 * timerFrac), 14, 5, 5);
+
+                // Objects found
+                g2.setColor(NEON_GREEN);
+                g2.drawString(String.format("Found: %d/%d", objectsFound, totalObjects), 440, 25);
+
+                // Password status
+                g2.setColor(hasPassword ? NEON_GREEN : CYBER_RED);
+                g2.drawString(hasPassword ? "🔑 PASSWORD FOUND" : "🔒 FIND PASSWORD", 620, 25);
+
+                // Hints + Attempts (compact)
+                g2.setFont(SMALL_FONT);
+                g2.setColor(DIM_CYAN);
+                g2.drawString(String.format("Attempts: %d/3 | Hints: %d/%d (H)",
+                        passwordAttemptsLeft, MAX_HINTS - hintsUsed, MAX_HINTS), 850, 25);
+
+                // Active hint display
+                if (System.currentTimeMillis() - hintTime < 10000 && !currentHint.isEmpty()) {
+                    g2.setFont(HUD_FONT);
+                    g2.setColor(NEON_CYAN);
+                    drawCentered(g2, currentHint, H - 50);
+                }
+
+                // Bottom hint bar (slim)
+                g2.setColor(new Color(10, 10, 20, 160));
+                g2.fillRect(0, H - 30, W, 30);
+
+                g2.setFont(SMALL_FONT);
+                g2.setColor(new Color(0, 200, 230, 150));
+                String hint = critical ? "⚡ Time is running out!"
+                        : "Click objects to investigate • Press H for hints";
+                g2.drawString(hint, 20, H - 10);
+            }
+
+            // ── Feedback popup ────────────────────────────────────────
+            private void drawFeedbackPopup(Graphics2D g2, double time) {
+                long age = System.currentTimeMillis() - feedbackTime;
+                float alpha = Math.max(0, 1 - age / 3000f);
+                float yOffset = (float)(age * 0.02);
+
+                drawNeonPanel(g2, W / 2 - 280, (int)(600 - yOffset),
+                        560, 50, DIM_CYAN);
+                g2.setFont(DIALOGUE_FONT);
+                g2.setColor(new Color(255, 255, 255, (int)(alpha * 255)));
+                drawCentered(g2, feedbackMsg, (int)(630 - yOffset));
+            }
+
+            // ── NEW: Object Magnifier ─────────────────────────────────
+            private void drawMagnifier(Graphics2D g2, double time) {
+                if (magnifiedItem == null) return;
+
+                long age = System.currentTimeMillis() - magnifyStartTime;
+                if (age > 3000) { // Show for 3 seconds
+                    magnifiedItem = null;
+                    return;
+                }
+
+                // Semi-transparent overlay
+                float fadeIn = Math.min(1f, age / 300f);
+                g2.setColor(new Color(0, 0, 0, (int)(150 * fadeIn)));
+                g2.fillRect(0, 0, W, H);
+
+                // Magnified item panel
+                int panelW = 450, panelH = 350;
+                int panelX = W / 2 - panelW / 2;
+                int panelY = H / 2 - panelH / 2;
+
+                drawNeonPanel(g2, panelX, panelY, panelW, panelH, NEON_GREEN);
+
+                // Item name
+                g2.setFont(new Font("Consolas", Font.BOLD, 28));
+                g2.setColor(NEON_CYAN);
+                drawCentered(g2, "🔍 " + magnifiedItem.name.toUpperCase(), panelY + 50);
+
+                // Zoomed visual representation
+                g2.setColor(magnifiedItem.highlightColor);
+                int itemSize = 100;
+                g2.fillRoundRect(W / 2 - itemSize / 2, panelY + 90, itemSize, itemSize, 12, 12);
+                g2.setColor(new Color(255, 255, 255, 100));
+                g2.setStroke(new BasicStroke(3));
+                g2.drawRoundRect(W / 2 - itemSize / 2, panelY + 90, itemSize, itemSize, 12, 12);
+                g2.setStroke(new BasicStroke(1));
+
+                // Description with word wrap
+                g2.setFont(DIALOGUE_FONT);
+                g2.setColor(Color.WHITE);
+                String[] words = magnifiedItem.dialogue.split(" ");
+                StringBuilder line = new StringBuilder();
+                int y = panelY + 220;
+
+                for (String word : words) {
+                    if (g2.getFontMetrics().stringWidth(line + word + " ") > panelW - 60) {
+                        drawCentered(g2, line.toString().trim(), y);
+                        y += 28;
+                        line = new StringBuilder(word + " ");
+                    } else {
+                        line.append(word).append(" ");
+                    }
+                }
+                if (line.length() > 0) {
+                    drawCentered(g2, line.toString().trim(), y);
+                }
+
+                // "Investigating..." label
+                g2.setFont(SMALL_FONT);
+                g2.setColor(AMBER);
+                float pulse = (float)(0.6 + 0.4 * Math.sin(time * 5));
+                g2.setColor(new Color(255, 190, 0, (int)(pulse * 255)));
+                drawCentered(g2, "▸ ANALYZING EVIDENCE ◂", panelY + panelH - 30);
+            }
+
+            // ── Tutorial Overlay (3 pages, clean) ────────────────────
+            private void drawTutorial(Graphics2D g2, double time) {
+                // Darken screen
+                g2.setColor(new Color(0, 0, 0, 180));
+                g2.fillRect(0, 0, W, H);
+
+                // Tutorial panel
+                drawNeonPanel(g2, W / 2 - 320, 120, 640, 380, NEON_CYAN);
+
+                // Title
+                g2.setFont(new Font("Consolas", Font.BOLD, 28));
+                g2.setColor(NEON_CYAN);
+                drawCentered(g2, "HOW TO PLAY", 165);
+
+                g2.setFont(DIALOGUE_FONT);
+                g2.setColor(Color.WHITE);
+
+                switch (tutorialStep) {
+                    case 0 -> {
+                        drawCentered(g2, "You are a digital forensics detective.", 220);
+                        drawCentered(g2, "A suspect's laptop has critical evidence.", 250);
+                        drawCentered(g2, "", 280);
+                        drawCentered(g2, "🖱  Click objects on the desk to investigate", 310);
+                        drawCentered(g2, "⏱  You have 90 seconds to find the password", 340);
+                        drawCentered(g2, "❌  Wrong clicks cost you 3 seconds", 370);
+                    }
+                    case 1 -> {
+                        drawCentered(g2, "FINDING THE PASSWORD:", 220);
+                        drawCentered(g2, "", 250);
+                        drawCentered(g2, "🔑  The password is on a YELLOW sticky note", 280);
+                        drawCentered(g2, "⚠   It appears after you find 3+ objects", 310);
+                        drawCentered(g2, "🚫  RED and BLUE notes have FAKE passwords", 340);
+                        drawCentered(g2, "💻  Click the LAPTOP to enter the password", 370);
+                    }
+                    case 2 -> {
+                        drawCentered(g2, "TIPS:", 220);
+                        drawCentered(g2, "", 250);
+                        drawCentered(g2, "🎯  You get 3 password attempts", 280);
+                        drawCentered(g2, "💡  Press H for hints (costs 5 sec, max 3)", 310);
+                        drawCentered(g2, "⭐  Speed + Accuracy = Better rank (S to D)", 340);
+                        drawCentered(g2, "", 370);
+                        drawCentered(g2, "Good luck, Detective!", 400);
+                    }
+                }
+
