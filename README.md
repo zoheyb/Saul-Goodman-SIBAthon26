@@ -51,9 +51,9 @@ java Firewall
 ## 👥 Team
 | Name | 
 |------|------|
-| [Zohaib Hassan] | [Team Leader] |
-| [Mazhar Ali] | |
-| [Abdul Ahad] |  |
+| [Zohaib Hassan]
+| [Mazhar Ali] 
+| [Abdul Ahad] 
 
 Built with ❤️ at **SIBAthon**
 ---
