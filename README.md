@@ -49,7 +49,7 @@ java Firewall
 - **No external dependencies** — runs standalone
 ---
 ## 👥 Team
-| Name | Role |
+| Name | 
 |------|------|
 | [Zohaib Hassan] | [Team Leader] |
 | [Mazhar Ali] | |
@@ -57,8 +57,6 @@ java Firewall
 
 Built with ❤️ at **SIBAthon**
 ---
-## 📸 Screenshots
-*Add screenshots of your game here!*
----
+
 ## 📜 License
 This project was created for educational purposes at SIBAthon.
