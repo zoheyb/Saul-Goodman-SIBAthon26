@@ -49,7 +49,6 @@ java Firewall
 - **No external dependencies** — runs standalone
 ---
 ## 👥 Team
-|------|------|
 | [Zohaib Hassan]
 | [Mazhar Ali] 
 | [Abdul Ahad] 
